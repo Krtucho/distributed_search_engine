@@ -2,8 +2,15 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Optional
 
-# Api Servers
+import requests # Para realizar peticiones a otros servers y descargar archivos
 
+# Api Servers
+servers = ['localhost']
+
+# Clusters of n servers. Update when a new server joins
+clusters = ['localhost']
+
+port = 8000
 
 app = FastAPI()
 
@@ -28,9 +35,33 @@ def search_file(id):
     return [file["file"] for file in files if file["id"] == id]
 
 
+def send_notification(cluster, text: str):
+    print(cluster)
+    server = f'http://{cluster}:{port}/'
+    print(server)
+    r = requests.get(server, verify=False)
+    print(r)
+    print(r.content)
+    print(r.text)
+
+def search_by_text(text: str):
+    print(text)
+    # Search text in every server
+    for cluster in clusters:
+        send_notification(cluster, text)
+
+    # Make Ranking
+
+    # Return Response
+
+
+def tf_idf(textt: str):
+    pass # Paula
+
 class File(BaseModel):
     file_name: str
     server_number: int
+    content: str
     # paginas:int
     # editorial: Optional[str]
 
@@ -44,6 +75,16 @@ def index():
 def show_file(id: int):
     return search_file(id)#{"data": id}
 
+# Cliente
+@app.get('/files/search/{text}')
+def show_file(text: str):
+    return search_by_text(text)#{"data": id}
+
+# Server
+# Este es el que llama al TF-IDF
+@app.get('/files/search/{text}')
+def search_file_in_db(text: str):
+    return tf_idf(text)#{"data": id}
 
 @app.post("/files")
 def add_file(file: File):
