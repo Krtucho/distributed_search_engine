@@ -135,6 +135,40 @@ class VectorModel:
         return max
 
 
+    def similarity(self, terms_dict: dict):
+        """
+        Clacula la similitud de la consulta con los términos en terms_dict
+        """
+        sim = dict()
+        aux = dict()
+
+        # Similitud con el contenido del documento
+        for term in terms_dict:
+            if term in self.query_terms:
+                aux[term] = self.query_terms[term]
+            else:
+                aux[term] = 0
+
+        for term in aux:
+            for doc in terms_dict[term]:
+                if not sim.get(doc):
+                    sim[doc] = {'wiq2': pow(aux[term], 2), 'wij2': pow(
+                        terms_dict[term][doc]['w'], 2), 'wijxwiq': aux[term] * terms_dict[term][doc]['w']}
+                else:
+                    sim[doc]['wiq2'] += pow(aux[term], 2)
+                    sim[doc]['wij2'] += pow(terms_dict[term]
+                                            [doc]['w'], 2)
+                    sim[doc]['wijxwiq'] += sux[term] * \
+                        terms_dict[term][doc]['w']
+
+        for doc in sim:
+            if pow(sim[doc]['wiq2'], 1/2) * pow(sim[doc]['wij2'], 1/2) != 0:
+                self.query_cont_sim[doc] = round(
+                    sim[doc]['wijxwiq'] / (pow(sim[doc]['wiq2'], 1/2) * pow(sim[doc]['wij2'], 1/2)), 3)
+            else:
+                self.query_cont_sim[doc] = 0
+
+
     def similiraty(self):
         """
         Calcula la similitud entre la consulta y el contenido de los documentos
@@ -215,8 +249,7 @@ class VectorModel:
                 query_name_sim_1[doc] = self.query_name_sim[doc]
 
         rank_name = sorted(query_name_sim_1.items(), key=lambda x: x[1], reverse=True) 
-        
-        
+                
         return rank_name, rank_data
 
     
