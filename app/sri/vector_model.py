@@ -214,7 +214,7 @@ class VectorModel:
             if self.query_name_sim[doc] > 0:
                 query_name_sim_1[doc] = self.query_name_sim[doc]
 
-        rank_name = sorted(query_name_sim_1.items(), key=lambda x: x[1], reverse=True)
+        rank_name = sorted(query_name_sim_1.items(), key=lambda x: x[1], reverse=True) 
         
         
         return rank_name, rank_data
