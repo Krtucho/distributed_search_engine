@@ -8,50 +8,54 @@ from nltk.corpus import wordnet, stopwords
 class VectorModel:
     def __init__(self):
         super().__init__()
-        # freq, tf, idf de los términos dentro del contenido de los documentos
-        self.doc_data_terms = dict()
+        
+        # Términos del contenido de los documentos
+        # {terms: {docs: {freq, tf, idf, w}}}    
+        self.doc_cont_terms = dict()
 
-        # freq, tf, idf de los términos en el nombre de los documentos
+        # Términos de los nombres de los documentos 
+        # {terms: {docs: {freq, tf, idf, w}}}   
         self.doc_name_terms = dict()
 
-        # freq, tf, idf de los términos de la consulta
+        # Términos de la consulta
+        # {terms: {w}}
         self.query_terms = dict()
 
         # similitud entre los términos de la consulta y los términos dentro del contenido de los documentos
-        self.query_data_sim = dict()
+        self.query_cont_sim = dict()
 
         # similitud entre los términos de la consulta y los términos en el nombre de los documentos
         self.query_name_sim = dict()
 
 
-    def query_data(self, query: str):
+    def query_cont(self, query: str):
         """
         Calcula el idf de los términos de la consulta
         """
-        terms_count = get_frequency(normalize(query))
+        terms_freq = self.get_frequency(self.normalize(query))
 
-        max = get_max_frequency(terms_count)
+        max = self.get_max_frequency(terms_freq)
 
-        for term in terms_count:
+        for term in terms_freq:
             idf = 0
-            for freq in self.doc_data_terms[term].values():
+            for freq in self.doc_cont_terms[term].values():
                 idf = freq['idf']
             if max != 0:
                 self.query_terms[term] = (
-                    0.5 + (0.5) * ((terms_count[term])/(max)))*idf
+                    0.5 + (0.5) * ((terms_freq[term])/(max)))*idf
             else:
                 self.query_terms[term] = 0
 
 
-    def doc_name(self, documents: list):
+    def doc_name(self, doc_names: list):
         """
         Calcula freq, tf, idf de los términos en el nombre de los documentos
         """
-        for doc in documents:
+        for doc in doc_names:
 
-            terms_count = get_frequency(normalize(doc))
+            terms_freq = self.get_frequency(self.normalize(doc))
 
-            max = get_max_frequency(terms_count)
+            max = self.get_max_frequency(terms_freq)
 
             for term in terms_freq:
                 if not self.doc_name_terms.get(term):
@@ -64,35 +68,35 @@ class VectorModel:
         for term in self.doc_name_terms:
             for doc in self.doc_name_terms[term]:
                 self.doc_name_terms[term][doc]['idf'] = log(
-                    len(documents) / len(self.doc_name_terms[term]), 10)
+                    len(doc_names) / len(self.doc_name_terms[term]), 10)
                 self.doc_name_terms[term][doc]['w'] = self.doc_name_terms[term][doc]['tf'] * \
                     self.doc_name_terms[term][doc]['idf']
 
 
-    def doc_data(self, documents: list):
+    def doc_data(self, doc_cont: list):
         """
         Calcula freq, tf, idf de los términos en el contenido de los documentos
         """
-        for doc in documents:
+        for doc in doc_cont:
 
-            terms_count = get_frequency(normalize(doc))
+            terms_freq = self.get_frequency(self.normalize(doc))
 
-            max = get_max_frequency(terms_count)
+            max = self.get_max_frequency(terms_freq)
 
             for term in terms_freq:
-                if not self.doc_data_terms.get(term):
-                    self.doc_data_terms[term] = {doc['id']: {
+                if not self.doc_cont_terms.get(term):
+                    self.doc_cont_terms[term] = {doc['id']: {
                         'freq': terms_freq[term], 'tf': terms_freq[term]/max, 'idf': 0, 'w': 0}}
                 else:
-                    self.doc_data_terms[term][doc['id']] = {
+                    self.doc_cont_terms[term][doc['id']] = {
                         'freq': terms_freq[term], 'tf': terms_freq[term]/max, 'idf': 0, 'w': 0}
 
-        for term in self.doc_data_terms:
-            for doc in self.doc_data_terms[term]:
-                self.doc_data_terms[term][doc]['idf'] = log(
-                    self.dataset.docslen / len(self.doc_data_terms[term]), 10)
-                self.doc_data_terms[term][doc]['w'] = self.doc_data_terms[term][doc]['tf'] * \
-                    self.doc_data_terms[term][doc]['idf']
+        for term in self.doc_cont_terms:
+            for doc in self.doc_cont_terms[term]:
+                self.doc_cont_terms[term][doc]['idf'] = log(
+                    len(doc_cont) / len(self.doc_cont_terms[term]), 10)
+                self.doc_cont_terms[term][doc]['w'] = self.doc_cont_terms[term][doc]['tf'] * \
+                    self.doc_cont_terms[term][doc]['idf']
 
 
     def normalize(self, text: str) -> list:
@@ -140,30 +144,30 @@ class VectorModel:
         aux_1 = dict()
 
         # Similitud con el contenido del documento
-        for term in self.doc_data_terms:
+        for term in self.doc_cont_terms:
             if term in self.query_terms:
                 aux_1[term] = self.query_terms[term]
             else:
                 aux_1[term] = 0
 
         for term in aux_1:
-            for doc in self.doc_data_terms[term]:
+            for doc in self.doc_cont_terms[term]:
                 if not sim_data.get(doc):
                     sim_data[doc] = {'wiq2': pow(aux_1[term], 2), 'wij2': pow(
-                        self.doc_data_terms[term][doc]['w'], 2), 'wijxwiq': aux_1[term] * self.doc_data_terms[term][doc]['w']}
+                        self.doc_cont_terms[term][doc]['w'], 2), 'wijxwiq': aux_1[term] * self.doc_cont_terms[term][doc]['w']}
                 else:
                     sim_data[doc]['wiq2'] += pow(aux_1[term], 2)
-                    sim_data[doc]['wij2'] += pow(self.doc_data_terms[term]
+                    sim_data[doc]['wij2'] += pow(self.doc_cont_terms[term]
                                             [doc]['w'], 2)
                     sim_data[doc]['wijxwiq'] += aux_1[term] * \
-                        self.doc_data_terms[term][doc]['w']
+                        self.doc_cont_terms[term][doc]['w']
 
         for doc in sim_data:
             if pow(sim_data[doc]['wiq2'], 1/2) * pow(sim_data[doc]['wij2'], 1/2) != 0:
-                self.query_data_sim[doc] = round(
+                self.query_cont_sim[doc] = round(
                     sim_data[doc]['wijxwiq'] / (pow(sim_data[doc]['wiq2'], 1/2) * pow(sim_data[doc]['wij2'], 1/2)), 3)
             else:
-                self.query_data_sim[doc] = 0
+                self.query_cont_sim[doc] = 0
 
         sim_name = dict()
         aux_2 = dict()
@@ -196,33 +200,22 @@ class VectorModel:
 
 
     def ranking(self): 
-        # new_query_data_sim = dict()
-        # new_query_name_sim = dict()
+        query_cont_sim_1 = dict()
+        query_name_sim = dict()
 
-        # for doc in self.query_data_sim:
-        #     if self.query_data_sim[doc] > 0:
-        #         new_query_data_sim[doc] = self.query_data_sim[doc]
+        for doc in self.query_cont_sim:
+            if self.query_cont_sim[doc] > 0:
+                query_cont_sim_1[doc] = self.query_cont_sim[doc]
 
-        # rank_data = sorted(new_query_data_sim.items(), key=lambda x: x[1], reverse=True)
+        rank_data = sorted(query_cont_sim_1.items(), key=lambda x: x[1], reverse=True)
         
-        # for doc in self.query_name_sim:
-        #     if self.query_name_sim[doc] > 0:
-        #         new_query_name_sim[doc] = self.query_name_sim[doc]
+        for doc in self.query_name_sim:
+            if self.query_name_sim[doc] > 0:
+                query_name_sim[doc] = self.query_name_sim[doc]
 
-        # rank_name = sorted(new_query_name_sim.items(), key=lambda x: x[1], reverse=True)
+        rank_name = sorted(query_name_sim.items(), key=lambda x: x[1], reverse=True)
         
-
-        query_sim = dict()
-
-        for doc in self.query_data_sim:
-            if self.query_data_sim[doc] > 0:
-                query_sim[doc] = self.query_data_sim[doc]
-
-            if self.query_name_sim[doc] > self.query_data_sim[doc]:
-                query_sim[doc] = self.query_name_sim[doc]
-
-        rank = sorted(query_sim.items(), key=lambda x: x[1], reverse=True)
         
-        return rank
+        return rank_name, rank_data
 
     
