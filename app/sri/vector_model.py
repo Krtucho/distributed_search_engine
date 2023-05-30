@@ -1,4 +1,5 @@
 from math import log
+import re
 import numpy as np
 import nltk
 from nltk.stem.wordnet import WordNetLemmatizer
@@ -201,7 +202,7 @@ class VectorModel:
 
     def ranking(self): 
         query_cont_sim_1 = dict()
-        query_name_sim = dict()
+        query_name_sim_1 = dict()
 
         for doc in self.query_cont_sim:
             if self.query_cont_sim[doc] > 0:
@@ -211,9 +212,9 @@ class VectorModel:
         
         for doc in self.query_name_sim:
             if self.query_name_sim[doc] > 0:
-                query_name_sim[doc] = self.query_name_sim[doc]
+                query_name_sim_1[doc] = self.query_name_sim[doc]
 
-        rank_name = sorted(query_name_sim.items(), key=lambda x: x[1], reverse=True)
+        rank_name = sorted(query_name_sim_1.items(), key=lambda x: x[1], reverse=True)
         
         
         return rank_name, rank_data
