@@ -47,7 +47,7 @@ def send_notification(cluster, text: str):
 def search_by_text(text: str):
     print(text)
     # Search text in every server
-    for cluster in clusters:
+    for cluster in clusters: # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
         send_notification(cluster, text)
 
     # Make Ranking
@@ -84,6 +84,7 @@ def show_file(text: str):
 # Este es el que llama al TF-IDF
 @app.get('/files/search/{text}')
 def search_file_in_db(text: str):
+    # Construir ranking a partir de cada listado de archivos recibidos gracias al tf_idf
     return tf_idf(text)#{"data": id}
 
 @app.post("/files")

@@ -70,7 +70,7 @@ class File(BaseModel):
 def index():
     return {"msg": "Hello World!"}
 
-
+# Cliente
 @app.get('/files/{id}')
 def show_file(id: int):
     return search_file(id)#{"data": id}
