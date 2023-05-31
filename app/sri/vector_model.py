@@ -9,11 +9,11 @@ from nltk.corpus import wordnet, stopwords
 class VectorModel:
     def __init__(self):
         super().__init__()
-        
+
         # Términos del contenido de los documentos
-        # {terms: {docs: {freq, tf, idf, w}}}    
+        # {terms: {docs: {freq, tf, idf, w}}}
         self.doc_terms = dict()
-        
+
         # Términos de la consulta
         # {terms: {w}}
         self.query_terms = dict()
@@ -43,7 +43,7 @@ class VectorModel:
                     0.5 + (0.5) * ((terms_freq[term])/(max)))*idf
             else:
                 self.query_terms[term] = 0
-
+ 
 
     def doc_terms_data(self, doc_cont: list):
         """
@@ -132,7 +132,7 @@ class VectorModel:
                 else:
                     sim_1[doc]['wiq2'] += pow(aux_1[term], 2)
                     sim_1[doc]['wij2'] += pow(self.doc_terms[term]
-                                            [doc]['w'], 2)
+                                              [doc]['w'], 2)
                     sim_1[doc]['wijxwiq'] += aux_1[term] * \
                         self.doc_terms[term][doc]['w']
 
@@ -144,13 +144,13 @@ class VectorModel:
                 self.sim[doc] = 0
 
 
-    def ranking(self, query: str)-> dict: 
+    def ranking(self, query: str) -> list:
         """
         Llama a query_cont para hallar los pesos de la consulta
         después a similarity para ver la similitud con los documentos
         devuelve el ranking
         """
-        
+
         self.clean_query_data()
 
         self.query_cont(query)
@@ -165,11 +165,10 @@ class VectorModel:
                 sim_1[doc] = self.sim[doc]
 
         rank = sorted(sim_1.items(), key=lambda x: x[1], reverse=True)
-        
-        return  rank
 
-    
+        return rank
+
+
     def clean_query_data(self):
         self.query_terms.clear()
         self.sim.clear()
-
