@@ -4,6 +4,8 @@ from typing import Optional
 
 import requests # Para realizar peticiones a otros servers y descargar archivos
 
+from file_handler import *
+
 # Api Servers
 servers = ['localhost']
 
@@ -31,8 +33,8 @@ files = [
 ]
 
 
-def search_file(id):
-    return [file["file"] for file in files if file["id"] == id]
+# def search_file(id):
+#     return [file["file"] for file in files if file["id"] == id]
 
 
 def send_notification(cluster, text: str):
@@ -40,19 +42,26 @@ def send_notification(cluster, text: str):
     server = f'http://{cluster}:{port}/'
     print(server)
     r = requests.get(server, verify=False)
-    print(r)
-    print(r.content)
-    print(r.text)
+
+
+    # print(r)
+    # print(r.content)
+    # print(r.text)
 
 def search_by_text(text: str):
     print(text)
+    ranking = [] # List with the ranking and query documents results
     # Search text in every server
+    # TODO: Parallizar peticiones a todos los servidores para pedirles sus rankings. https://docs.python.org/es/3/library/multiprocessing.html
     for cluster in clusters: # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
-        send_notification(cluster, text)
+        ranking.append(send_notification(cluster, text))
 
     # Make Ranking
+    # Luego de esperar cierta cantidad de segundos por los rankings pasamos a hacer un ranking general de todo lo q nos llego
+    # TODO: Si alguna pc se demora mucho en devolver el ranking, pasamos a preguntarle a algun intregrante de su cluster que es lo que sucede
 
     # Return Response
+    # Retornamos el ranking general de todos los rankings combinados
 
 
 def tf_idf(textt: str):
@@ -71,9 +80,9 @@ def index():
     return {"msg": "Hello World!"}
 
 # Cliente
-@app.get('/files/{id}')
-def show_file(id: int):
-    return search_file(id)#{"data": id}
+# @app.get('/files/{id}')
+# def show_file(id: int):
+#     return search_file(id)#{"data": id}
 
 # Cliente
 @app.get('/files/search/{text}')
@@ -82,7 +91,7 @@ def show_file(text: str):
 
 # Server
 # Este es el que llama al TF-IDF
-@app.get('/files/search/{text}')
+@app.get('/api/files/search/{text}')
 def search_file_in_db(text: str):
     # Construir ranking a partir de cada listado de archivos recibidos gracias al tf_idf
     return tf_idf(text)#{"data": id}
@@ -114,8 +123,20 @@ async def upload_file(file: UploadFile = File(...)):
 def get_file(name_file: str):
     return FileResponse(getcwd() + "/" + name_file)
 
+# Cliente
+# Metodo para que el cliente le pida un archivo a traves de una url al servidor con el que se esta comunicando
+@router.get("/download/{url}")
+def download_file(url: str):
+    # Se le pide al servidor que se encuentra en url el archivo
+    # server = f'{cluster}'
+    # print(server)
+    file = download_file(url=url)#requests.get(url, verify=False)
 
-@router.get("/download/{name_file}")
+
+    return FileResponse(getcwd() + "/" + file, media_type="application/octet-stream", filename=file)
+
+# Server
+@router.get("/api/download/{name_file}")
 def download_file(name_file: str):
     return FileResponse(getcwd() + "/" + name_file, media_type="application/octet-stream", filename=name_file)
 
