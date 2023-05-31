@@ -142,7 +142,6 @@ class VectorModel:
         sim = dict()
         aux = dict()
 
-        # Similitud con el contenido del documento
         for term in terms_dict:
             if term in self.query_terms:
                 aux[term] = self.query_terms[term]
@@ -169,7 +168,7 @@ class VectorModel:
                 self.query_cont_sim[doc] = 0
 
 
-    def similiraty(self):
+    def similarity(self):
         """
         Calcula la similitud entre la consulta y el contenido de los documentos
         y entre la consulta y el nombre de los archivos
@@ -253,3 +252,11 @@ class VectorModel:
         return rank_name, rank_data
 
     
+    def clean_query_data(self):
+        self.query_terms.clear()
+        self.query_cont_sim.clear()
+        self.query_name_sim.clear()
+
+
+
+        
