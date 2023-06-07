@@ -5,3 +5,30 @@
 
 >sudo docker run -d --name fastapi-test1 -p 80:80 fastapi-files
 ```
+
+
+## Backend
+
+```bash
+>cd backend
+
+>sudo docker build -t fastapi-files .
+
+>sudo docker run -d --name backend fastapi-files
+```
+
+# Frontend
+```bash
+>sudo docker build -t dockerize-quasar-ip .
+
+>sudo docker run -d --name frontend dockerize-quasar-ip
+```
+
+# Network
+```bash
+>docker network create fastapi-quasar
+
+>docker network connect fastapi-quasar backend
+
+>docker network connect fastapi-quasar frontend
+```

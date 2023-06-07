@@ -1,0 +1,110 @@
+@charset "utf-8"; 
+
+.nav_bar_bg
+{
+  background : #1E90FF;
+  background : rgba(30, 144, 255, 1);
+  width : 1366px;
+  height : 69px;
+}
+
+.nav_bar_tab_text
+{
+  font-family : Berlin Sans FB Demi;
+  font-weight : bold;
+  font-size : 28px;
+  color : #FFFFFF;
+  color : rgb(255, 255, 255);
+}
+
+.selected_tab
+{
+  background : #116CEF;
+  background : rgba(17, 108, 239, 1);
+  width : 93px;
+  height : 71px;
+}
+
+.search_bar
+{
+  background : #FFFFFF;
+  background : rgba(255, 255, 255, 1);
+  width : 169px;
+  height : 39px;
+  border-radius : 10px;
+  -moz-border-radius : 10px;
+  -webkit-border-radius : 10px;
+}
+
+
+.brand_text
+{
+  font-family : Imprint MT Shadow;
+  font-size : 20px;
+  color : #FFFFFF;
+  color : rgb(255, 255, 255);
+}
+
+.user_background
+{
+  background : #DBDBDB;
+  background : rgba(219, 219, 219, 1);
+  opacity : 0.63;
+  width : 111px;
+  height : 111px;
+  border-radius : 12px;
+  -moz-border-radius : 12px;
+  -webkit-border-radius : 12px;
+  filter: alpha(opacity=63) progid:DXImageTransform.Microsoft.Alpha(opacity=63) ;
+}
+
+.user_item_text
+{
+  font-family : Berlin Sans FB Demi;
+  font-weight : bold;
+  font-size : 21px;
+  color : #2571AF;
+  color : rgb(37, 113, 175);
+}
+
+.user_drop_btn
+{
+  background : #FFFFFF;
+  background : rgba(255, 255, 255, 1);
+  width : 16px;
+  height : 10px;
+}
+
+.user_btn_whiteline
+{
+  border-style : Solid;
+  border-color : #FFFFFF;
+  border-color : rgba(255, 255, 255, 1);
+  border-width : 1px;
+  width : 55px;
+  height : 30px;
+  border-radius : 6px;
+  -moz-border-radius : 6px;
+  -webkit-border-radius : 6px;
+}
+
+.entrar_button_whiteline
+{
+  border-style : Solid;
+  border-color : #FFFFFF;
+  border-color : rgba(255, 255, 255, 1);
+  border-width : 1px;
+  width : 80px;
+  height : 30px;
+  border-radius : 6px;
+  -moz-border-radius : 6px;
+  -webkit-border-radius : 6px;
+}
+
+.entrar_text
+{
+  font-family : Myriad Pro;
+  font-size : 22px;
+  color : #FFFFFF;
+  color : rgb(255, 255, 255);
+}
