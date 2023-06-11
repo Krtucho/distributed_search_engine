@@ -1,24 +1,49 @@
 import random
 
 class Address:
-    def __init__(self, ip, port) -> None:
-          self.ip = ip
-          self.port = port
+	def __init__(self, ip, port) -> None:
+		self.ip = ip
+		self.port = port
+
+	def __eq__(self, __value: object) -> bool:
+		print("Compare->", self, __value)
+		if isinstance(__value, Address):
+			print("Inside isinstance")
+			return self.ip == __value.ip and self.port == __value.port
+		return False
+	
+	def __repr__(self) -> str:
+		return f"ip:{self.ip}, port:{self.port}"
+
+class PubMessage:
+	def __init__(self, address:Address, msg) -> None:
+		self.address = address
+		self.msg = msg
 
 class TransportLayer():
-    def __init__(self, hostsIPs, hostsPorts) -> None:
-           hosts:list[Address]= []
+	def __init__(self, hostsIPs, hostsPorts) -> None:
+		hosts:list[Address]= []
 
 class Channel():
-    def __init__(self, nBits=5, hostIP='redis', portNo=6379):
-		self.channel   = 5#redis.StrictRedis(host=hostIP, port=portNo, db=0)
-		self.osmembers = {}
+	def __init__(self, nBits=5, hostIP='redis', portNo=6379, address=Address("localhost", 8000)):
+		# self.channel   = 5#redis.StrictRedis(host=hostIP, port=portNo, db=0)
+		self.osmembers:dict = {}
 		self.nBits     = nBits
 		self.MAXPROC   = pow(2, nBits)
-                
-    def join(self, subgroup):
+		self.address = address
+
+	def get_member(self, node_id):
+		try:
+			return self.osmembers[node_id]
+		except:
+			return None
+		
+	def get_members(self, type='node'):
+		return set(self.osmembers.keys())
+           
+	def join(self, subgroup, address, port):
 		# members = self.channel.smembers('members')
-		newpid = random.choice(list(set([str(i) for i in range(self.MAXPROC)]) - members))
+		newpid = random.choice(list(set([str(i) for i in range(self.MAXPROC)]) - self.get_members()))
 		# if len(members) > 0:
 		# 	xchan = [[str(newpid), other] for other in members] + [[other, str(newpid)] for other in members]
 		# 	for xc in xchan:
@@ -26,25 +51,30 @@ class Channel():
 		# Coordination...
         # self.channel.sadd('members',str(newpid))
 		# self.channel.sadd(subgroup, str(newpid))
+		self.osmembers[newpid] = Address(address, port)
 		return str(newpid)
     
-    def get_members(self, type='node'):
-        return 
     
-    def sendTo(self, caller, destinationSet, message):
+	def publish(self, caller, dst, message):
+		return PubMessage(Address(self.osmembers[dst].address, self.osmembers[dst].port))
+
+	def sendTo(self, caller, destinationSet, message):
 		# caller = self.osmembers[os.getpid()]
 		# assert self.channel.sismember('members', str(caller)), ''
 		# if not is_member(caller, 'members'):
         #     return
 
-        for i in destinationSet: 
+		ans = []
+		for i in destinationSet:
 			# assert self.channel.sismember('members', str(i)), ''
 		    # if not is_member(caller, 'members'):
 			#     return 
-            self.channel.rpush([str(caller),str(i)], pickle.dumps(message) )
-            publish(caller, i, message)
+            # self.channel.rpush([str(caller),str(i)], pickle.dumps(message) )
+			ans.append(self.publish(caller, i, message))
 
-    def recvFromAny(self, caller, timeout=0):
+		return ans
+
+	def recvFromAny(self, caller, timeout=0):
 		# caller = self.osmembers[os.getpid()]
 		# assert self.channel.sismember('members', str(caller)), ''
 		members = self.get_members()#self.channel.smembers('members')
