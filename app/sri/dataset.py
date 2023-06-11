@@ -18,10 +18,6 @@ class Dataset:
 
 
     def build_dataset(self, dataset: str):
-        '''
-        Build the dataset and get the documents
-        :param dataset: dataset name
-        '''
         self.clean_data()
         self.dataset_name = dataset
 
@@ -54,19 +50,10 @@ class Dataset:
 
 
     def get_query_data(dataset: str) -> list:
-        '''
-        :param dataset: dataset name
-        :return: list of queries with their id and text
-        '''
         return [{'id': str(id+1), 'query': data.text} for id, data in enumerate(load(dataset).queries_iter())]
 
 
     def print_query_data(self, dataset: str) -> list:
-        '''
-        :param dataset: dataset name
-        :return: list of queries with their id and text in a readable format
-        '''
-        # return [data['id'] + ': ' + data['query'] for data in Dataset.get_query_data(dataset)]
         return [data['query'] for data in Dataset.get_query_data(dataset)]
 
 
