@@ -10,7 +10,7 @@ from nltk.stem.wordnet import WordNetLemmatizer
 
 
 class VectorModel:
-    def __init__(self, docs_count: int):
+    def __init__(self):
         super().__init__()
 
         # Términos del contenido de los documentos
@@ -34,6 +34,21 @@ class VectorModel:
         self.term_idf = dict()
 
 
+    def run(self, query: str):
+        """
+        Llama a query_cont para hallar los pesos de la consulta
+        después a similarity para ver la similitud con los documentos
+        y después llama a ranking
+        """
+        self.clean_query_data()
+
+        self.query_cont(query)
+
+        self.similarity()
+
+        return self.ranking()
+
+
     def query_cont(self, query: str):
         """
         Calcula el idf de los términos de la consulta
@@ -48,7 +63,7 @@ class VectorModel:
             for freq in self.doc_terms[term].values():
                 idf= freq['idf']
             if max != 0:
-                self.query_terms[term] = (0.5 + (1 - 0.5) * ((terms_freq[term])/(max)))*idf
+                self.query_terms[term] = (0.5 + (0.5) * ((terms_freq[term])/(max))) * idf
             else:
                 self.query_terms[term] = 0
 
@@ -111,18 +126,11 @@ class VectorModel:
                 self.query_sim[doc] = 0
 
 
-    def ranking(self, query: str) -> list:
+    def ranking(self) -> list:
         """
-        Llama a query_cont para hallar los pesos de la consulta
-        después a similarity para ver la similitud con los documentos
+        
         devuelve el ranking
         """
-
-        self.clean_query_data()
-
-        self.query_cont(query)
-
-        self.similarity()
 
         sim = dict()
 

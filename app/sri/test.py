@@ -1,5 +1,5 @@
 from dataset import Dataset
-from vector_model_copy import VectorModel
+from vector_model import VectorModel
 
 
 dataset = Dataset()
@@ -23,5 +23,5 @@ print(query[0])
 # for id, rank in vm.ranking(query[0])[:4]:
 #     print(dataset.documents_cont[int(id)])
 
-print(vm.ranking(query[0])[:6])
+print(vm.run(query[0])[:6])
 
