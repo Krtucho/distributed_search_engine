@@ -4,7 +4,8 @@ from typing import Optional
 import requests # Para realizar peticiones a otros servers y descargar archivos
 from file_handler import *
 from fastapi.middleware.cors import CORSMiddleware
-#from processes.database import DataB 
+from database import DataB
+
 import threading
 
 #VARIABLES DE ENTORNO
@@ -13,9 +14,9 @@ servers = ['localhost']
 
 # Clusters of n servers. Update when a new server joins
 clusters = ['localhost']
-
-port = 10002
-#path_db = './db_1.db'
+database = DataB()
+port = 10001 #cambiar al cambiar de server
+path_db = './databases/db_3.db' #cambiar al cambiar de server
 
 app = FastAPI()
 
@@ -58,47 +59,74 @@ files = [
 #     return [file["file"] for file in files if file["id"] == id]
 
 
-def send_notification(cluster, text: str):
+def send_notification(cluster, text: str, results):
+    print("ENTRO EN SEND NOTIFICATION")
+    print("Hilo en ejecución: {}".format(threading.current_thread().name))
     print(cluster)
-    server = f'http://{cluster}:{port}/'
+    server = f'http://{cluster}:{port}/api/files/search/{text}'
     print(server)
     r = requests.get(server, verify=False)
-
-
-    # print(r)
-    # print(r.content)
-    # print(r.text)
+    
+    print("R:")
+    print(r)
+    print(r.content)
+    print(r.text)
+    results.extend(r)  # Add matched documents to the shared list
+    
 
 def search_by_text(text: str):
     print(text)
+    print("ENTRO EN SEARCH BY TEXT")
+    threading_list = []
     ranking = [] # List with the ranking and query documents results
+    results = []  # Shared list to store the matched document names
+    # Construir ranking a partir de cada listado de archivos recibidos gracias al tf_idf
     # Search text in every server
+    print("cantidad de clusters = ", len(clusters))
     # TODO: Paralelizar peticiones a todos los servidores para pedirles sus rankings. https://docs.python.org/es/3/library/multiprocessing.html
-    for cluster in clusters: # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
-        ranking.append(send_notification(cluster, text))
+    for i, cluster in enumerate(clusters): # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
+        t = threading.Thread(target=send_notification, args=(cluster, text, results), name="Hilo {}".format(i))
+        threading_list.append(t)
 
+    print("T.START")
+    for t in threading_list:
+        t.start()
+    print("T.JOIN")
+    for t in threading_list:
+        t.join()
+    
+    print(results)
     # Make Ranking
     # Luego de esperar cierta cantidad de segundos por los rankings pasamos a hacer un ranking general de todo lo q nos llego
     # TODO: Si alguna pc se demora mucho en devolver el ranking, pasamos a preguntarle a algun intregrante de su cluster que es lo que sucede
 
     # Return Response
     # Retornamos el ranking general de todos los rankings combinados
+    return decorate_data(results)
 
+def decorate_data(results):
+    final_string = {}
+    for i, elem in enumerate(results):
+        key = f"data_{i}"
+        final_string[key] = {"name": elem, "url": "https://localhost:3000"}
+    return final_string
 
 def tf_idf(textt: str):
     pass # Paula
 
-#def match_by_name(datab,text:str):
-#    select_files = f"SELECT name FROM File WHERE File.name = '{text}'"
-#    result = datab.execute_read_query(select_files)
-#    return result
+def match_by_name(text:str, datab):
+    print("ENTRO EN MATCH BY NAME")
+    print("Hilo en ejecución: {}".format(threading.current_thread().name))
+    select_files = f"SELECT name FROM File WHERE File.name = '{text}'"
+    result = datab.execute_read_query(select_files)
+    print("RESULTADO ",result)
+    return result
 
-#def init_servers(): # De los servers yo se su IP
-#    print("INIT SERVERS")
-#    datab = DataB()
-#    datab.create_connection(path_db)
-#    datab.insert_file("Hakuna Matata")
-#    datab.insert_file("El viejo y el mar")
+def init_servers(datab): # De los servers yo se su IP
+    print("INIT SERVERS")
+    datab.create_connection(path_db)
+    datab.insert_file("Hakuna_Matata")
+    datab.insert_file("El viejo y el mar")
 
 class File(BaseModel):
     file_name: str
@@ -114,7 +142,7 @@ def index():
     import os
 
     my_variable = os.environ.get('CLUSTERS')
-
+    
     if my_variable is not None:
         print(f"El valor de la variable de entorno MY_VARIABLE es {my_variable}")
     else:
@@ -133,25 +161,31 @@ def index():
 # Cliente
 @app.get('/files/search/{text}')
 def show_file(text: str):
+    print("ENTRO EN SHOW FILE")
+    
     return search_by_text(text)#{"data": id}
 
 # Server
 # Este es el que llama al TF-IDF
 @app.get('/api/files/search/{text}')
 def search_file_in_db(text: str):
-    threading_list = []
-    # Construir ranking a partir de cada listado de archivos recibidos gracias al tf_idf
-    #for i, cluster in enumerate(clusters):
-    #    t = threading.Thread(target=match_by_name,args=(text,), name=f't{i}')
-    #    threading_list.append(t)
-    #    #matched = match_by_name(text)
-    #for t in threading_list:
-    #    t.start()
-    #for t in threading_list:
-    #    t.join()
+    print("ENTRO A SEARCH FILE IN DB")
+    print("PORT (el port 2 es el server 1 (y al reves)) = ",port)
+    print("Hilo en ejecución: {}".format(threading.current_thread().name))
+    # Crea una nueva conexión en cada hilo
+    print("CREAR NUEVA DATAB")
+    datab = DataB()
+    init_servers(datab)
+    matched_documents = match_by_name(text, datab)
+    # Cierra la conexión después de usarla
+    datab.close_connection()
 
-    return tf_idf(text)#{"data": id}
-
+    if matched_documents == None:
+        #Calcularel tf_idf
+        return tf_idf(text)#{"data": id}
+    else:
+        return decorate_data(matched_documents)
+   
 @app.post("/files")
 def add_file(file: File):
     return {"msg": f"File {file.file_name} a"}
@@ -196,7 +230,6 @@ def download_file(url: str):
 def download_file(name_file: str):
     return FileResponse(getcwd() + "/" + name_file, media_type="application/octet-stream", filename=name_file)
 
-
 @router.delete("/delete/{name_file}")
 def delete_file(name_file: str):
     try:
@@ -210,7 +243,6 @@ def delete_file(name_file: str):
             "message": "File not found"
         }, status_code=404)
 
-
 @router.delete("/folder")
 def delete_file(folder_name: str = Form(...)):
     rmtree(getcwd() + folder_name)
@@ -219,3 +251,5 @@ def delete_file(folder_name: str = Form(...)):
     }, status_code=200)
 
 app.include_router(router)
+print("EMPEZAMOS")
+init_servers(database)
