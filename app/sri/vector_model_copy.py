@@ -1,18 +1,12 @@
-from math import log
 import re
-import numpy as np
+from math import log
+
+import dataset
+import document
 import nltk
+import numpy as np
+from nltk.corpus import stopwords, wordnet
 from nltk.stem.wordnet import WordNetLemmatizer
-from nltk.corpus import wordnet, stopwords
-
-
-class Document:
-    def __init__(self, freq: int, tf: float, w: float):
-        super().__init__()
-
-        self.freq = freq
-        self.tf = tf
-        self.w = w
 
 
 class VectorModel:
@@ -48,10 +42,13 @@ class VectorModel:
         max = self.get_max_frequency(terms_freq)
 
         for term in terms_freq:
-            idf = self.term_idf[term]
+            idf = 0
+
+            if term in self.term_idf:
+                idf = self.term_idf[term]
+
             if max != 0:
-                self.query_terms[term] = (
-                    0.5 + (0.5) * ((terms_freq[term])/(max)))*idf
+                self.query_terms[term] = (0.5 + (0.5) * ((terms_freq[term])/(max))) * idf
             else:
                 self.query_terms[term] = 0
 
@@ -70,7 +67,7 @@ class VectorModel:
             for term in terms_freq:
                 freq = terms_freq[term]
                 tf = terms_freq[term]/max
-                doc_1 = Document(freq, tf, 0)
+                doc_1 = document.Document(freq, tf, 0)
 
                 if not self.doc_terms.get(term):
                     self.doc_terms[term] = {id: doc_1}
@@ -79,51 +76,14 @@ class VectorModel:
 
         for term in self.doc_terms:
             for doc in self.doc_terms[term]:
-                print(term, " ", len(self.doc_terms[term]))
                 self.term_idf[term] = log(
                     len(self.docs) / len(self.doc_terms[term]), 10)
-                self.doc_terms[term][doc].w = self.doc_terms[term][doc].tf * \
-                    self.term_idf[term]
-
-
-    def normalize(self, txt: str) -> list:
-        """
-        Elimina stopwords, .... 
-        """
-        return [WordNetLemmatizer().lemmatize(token.lower()) for token in re.split(r'\W+', txt) if token not in set(stopwords.words('english'))]
-
-
-    def get_frequency(self, elements: list) -> dict:
-        """
-        Calcula la frecuencia de los términos
-        """
-        count = dict()
-
-        for element in elements:
-            if not count.get(element):
-                count[element] = 1
-            else:
-                count[element] += 1
-
-        return count
-
-
-    def get_max_frequency(self, count: dict) -> int:
-        """
-        Halla la frequencia máxima entre los términos
-        """
-        max = 0
-
-        for term in count:
-            if max < count[term]:
-                max = count[term]
-
-        return max
+                self.doc_terms[term][doc].w = self.doc_terms[term][doc].tf * self.term_idf[term]
 
 
     def similarity(self):
         """
-        Calcula la similitud entre la consulta y e documento
+        Calcula la similitud entre la consulta y el documento
         """
 
         sim_1 = dict()
@@ -144,8 +104,7 @@ class VectorModel:
                     sim_1[doc]['wiq2'] += pow(aux_1[term], 2)
                     sim_1[doc]['wij2'] += pow(self.doc_terms[term]
                                               [doc].w, 2)
-                    sim_1[doc]['wijxwiq'] += aux_1[term] * \
-                        self.doc_terms[term][doc].w
+                    sim_1[doc]['wijxwiq'] += aux_1[term] * self.doc_terms[term][doc].w
 
         for doc in sim_1:
             if pow(sim_1[doc]['wiq2'], 1/2) * pow(sim_1[doc]['wij2'], 1/2) != 0:
@@ -182,3 +141,26 @@ class VectorModel:
     def clean_query_data(self):
         self.query_terms.clear()
         self.sim.clear()
+
+
+
+    def get_frequency(self, elements: list) -> dict:
+        count = dict()
+        for element in elements:
+            if not count.get(element):
+                count[element] = 1
+            else:
+                count[element] += 1
+        return count
+
+
+    def get_max_frequency(self, count: dict) -> int:
+        max = 0
+        for term in count:
+            if max < count[term]:
+                max = count[term]
+        return max
+
+
+    def normalize(self, text: str) -> list:
+        return [WordNetLemmatizer().lemmatize(token.lower()) for token in re.split(r'\W+', text) if token not in set(stopwords.words('english'))]
