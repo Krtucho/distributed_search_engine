@@ -1,12 +1,19 @@
 import re
 from math import log
 
-import dataset
 import nltk
 import numpy as np
-import lexemizer
 from nltk.corpus import stopwords, wordnet
 from nltk.stem.wordnet import WordNetLemmatizer
+
+
+class Document:
+    def __init__(self, freq: int, tf: float, w: float):
+        super().__init__()
+
+        self.freq = freq
+        self.tf = tf
+        self.w = w
 
 
 class VectorModel:
@@ -22,19 +29,18 @@ class VectorModel:
         self.query_terms = dict()
 
         # similitud entre los términos de la consulta y los términos dentro del contenido de los documentos
-        self.query_sim= dict()
+        self.query_sim = dict()
 
         # quitar si hay una forma de saber el total de documentos!!!
         # guarda todos los documentos
-        self.docs_count = 0
-        # self.docs_count = docs_count
-        
+        self.docs = 0
+
         # guarda el idf de los términos
         # {term: idf}
         self.term_idf = dict()
 
 
-    def run(self, query: str):
+    def run(self, query: str) -> list:
         """
         Llama a query_cont para hallar los pesos de la consulta
         después a similarity para ver la similitud con los documentos
@@ -53,21 +59,21 @@ class VectorModel:
         """
         Calcula el idf de los términos de la consulta
         """
-        terms_freq = self.get_frequency([term for term in self.normalize(query) if self.doc_terms.get(term)])
+        terms_freq = self.get_frequency(self.normalize(query))
 
         max = self.get_max_frequency(terms_freq)
 
-        
         for term in terms_freq:
-            idf= 0
-            for freq in self.doc_terms[term].values():
-                idf= freq['idf']
+            idf = 0 
+
+            if term in self.term_idf:
+                idf = self.term_idf[term]
+
             if max != 0:
                 self.query_terms[term] = (0.5 + (0.5) * ((terms_freq[term])/(max))) * idf
             else:
                 self.query_terms[term] = 0
 
- 
 
     def doc_terms_data(self, doc_cont: list):
         """
@@ -75,60 +81,69 @@ class VectorModel:
         """
 
         for id, doc in doc_cont:
-            self.docs_count += 1
+            self.docs += 1
+
+            if doc == '':
+                continue
 
             terms_freq = self.get_frequency(self.normalize(doc))
-
             max = self.get_max_frequency(terms_freq)
 
             for term in terms_freq:
+                freq = terms_freq[term]
+                tf = terms_freq[term]/max
+                doc_1 = Document(freq, tf, 0)
+
                 if not self.doc_terms.get(term):
-                    self.doc_terms[term] = {id : {'freq': terms_freq[term], 'tf': terms_freq[term]/max, 'idf':0, 'w': 0}}
+                    self.doc_terms[term] = {id: doc_1}
                 else:
-                    self.doc_terms[term][id] = {'freq': terms_freq[term], 'tf': terms_freq[term]/max, 'idf':0, 'w': 0}
+                    self.doc_terms[term][id] = doc_1
 
         for term in self.doc_terms:
-            self.term_idf[term] = log(self.docs_count / len(self.doc_terms[term]), 10)
-            for doc in self.doc_terms[term]:
-                self.doc_terms[term][doc]['idf'] = log(self.docs_count / len(self.doc_terms[term]), 10)                
-                self.doc_terms[term][doc]['w'] = self.doc_terms[term][doc]['tf'] * self.term_idf[term]
+            self.term_idf[term] = log(
+                    self.docs / len(self.doc_terms[term]), 10)
+
+            for doc in self.doc_terms[term]:                
+                self.doc_terms[term][doc].w = self.doc_terms[term][doc].tf * self.term_idf[term]
 
 
     def similarity(self):
         """
-        Calcula la similitud entre la consulta y e documento
+        Calcula la similitud entre la consulta y el documento
         """
 
-        sim = dict()
-        aux = dict()
+        sim_1 = dict()
+        aux_1 = dict()
 
         for term in self.doc_terms:
             if term in self.query_terms:
-                aux[term] = self.query_terms[term]
+                aux_1[term] = self.query_terms[term]
             else:
-                aux[term] = 0
+                aux_1[term] = 0
 
-        for term in aux:
+        for term in aux_1:
             for doc in self.doc_terms[term]:
-                if not sim.get(doc):
-                    sim[doc] = {'wiq2': pow(aux[term], 2), 'wij2': pow(
-                        self.doc_terms[term][doc]['w'], 2), 'wijxwiq': aux[term] * self.doc_terms[term][doc]['w']}
+                if not sim_1.get(doc):
+                    sim_1[doc] = {'wiq2': pow(aux_1[term], 2), 'wij2': pow(
+                        self.doc_terms[term][doc].w, 2), 'wijxwiq': aux_1[term] * self.doc_terms[term][doc].w}
                 else:
-                    sim[doc]['wiq2'] += pow(aux[term], 2)
-                    sim[doc]['wij2'] += pow(self.doc_terms[term][doc]['w'], 2)
-                    sim[doc]['wijxwiq'] += aux[term] * self.doc_terms[term][doc]['w']
+                    sim_1[doc]['wiq2'] += pow(aux_1[term], 2)
+                    sim_1[doc]['wij2'] += pow(self.doc_terms[term]
+                                              [doc].w, 2)
+                    sim_1[doc]['wijxwiq'] += aux_1[term] * self.doc_terms[term][doc].w
 
-        for doc in sim:
-            if pow(sim[doc]['wiq2'], 1/2) * pow(sim[doc]['wij2'], 1/2) != 0:
+        for doc in sim_1:
+            if pow(sim_1[doc]['wiq2'], 1/2) * pow(sim_1[doc]['wij2'], 1/2) != 0:
                 self.query_sim[doc] = round(
-                    sim[doc]['wijxwiq'] / (pow(sim[doc]['wiq2'], 1/2) * pow(sim[doc]['wij2'], 1/2)), 3)
+                    sim_1[doc]['wijxwiq'] / (pow(sim_1[doc]['wiq2'], 1/2) * pow(sim_1[doc]['wij2'], 1/2)), 3)
             else:
                 self.query_sim[doc] = 0
 
 
     def ranking(self) -> list:
         """
-        
+        Llama a query_cont para hallar los pesos de la consulta
+        después a similarity para ver la similitud con los documentos
         devuelve el ranking
         """
 
@@ -146,23 +161,27 @@ class VectorModel:
     def clean_query_data(self):
         self.query_terms.clear()
         self.query_sim.clear()
-    
+
 
     def get_frequency(self, elements: list) -> dict:
         count = dict()
+
         for element in elements:
             if not count.get(element):
                 count[element] = 1
             else:
                 count[element] += 1
+
         return count
 
 
     def get_max_frequency(self, count: dict) -> int:
         max = 0
+
         for term in count:
             if max < count[term]:
                 max = count[term]
+
         return max
 
 
