@@ -26,9 +26,9 @@
 
 # Network
 ```bash
->docker network create fastapi-quasar
+>sudo docker network create fastapi-quasar
 
->docker network connect fastapi-quasar backend
+>sudo docker network connect fastapi-quasar backend
 
->docker network connect fastapi-quasar frontend
+>sudo docker network connect fastapi-quasar frontend
 ```

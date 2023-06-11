@@ -1,13 +1,11 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Optional
-
 import requests # Para realizar peticiones a otros servers y descargar archivos
-
-from app.file_handler import *
-
-
+from file_handler import *
 from fastapi.middleware.cors import CORSMiddleware
+from processes.database import DataB 
+import threading
 
 # Api Servers
 servers = ['localhost']
@@ -15,8 +13,9 @@ servers = ['localhost']
 # Clusters of n servers. Update when a new server joins
 clusters = ['localhost']
 
-port = 8000
-
+port = 10001
+path_db = './processes/databases/db_1.db'
+datab = DataB()
 app = FastAPI()
 
 # Configuración de CORS
@@ -73,7 +72,7 @@ def search_by_text(text: str):
     print(text)
     ranking = [] # List with the ranking and query documents results
     # Search text in every server
-    # TODO: Parallizar peticiones a todos los servidores para pedirles sus rankings. https://docs.python.org/es/3/library/multiprocessing.html
+    # TODO: Paralelizar peticiones a todos los servidores para pedirles sus rankings. https://docs.python.org/es/3/library/multiprocessing.html
     for cluster in clusters: # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
         ranking.append(send_notification(cluster, text))
 
@@ -87,6 +86,16 @@ def search_by_text(text: str):
 
 def tf_idf(textt: str):
     pass # Paula
+
+def match_by_name(text:str):
+    select_files = f"SELECT name FROM File WHERE File.name = '{text}'"
+    result = datab.execute_read_query(select_files)
+    return result
+
+def init_servers(): # De los servers yo se su IP
+    datab.create_connection(path_db)
+    datab.insert_file("Hakuna Matata")
+    datab.insert_file("El viejo y el mar")
 
 class File(BaseModel):
     file_name: str
@@ -127,7 +136,17 @@ def show_file(text: str):
 # Este es el que llama al TF-IDF
 @app.get('/api/files/search/{text}')
 def search_file_in_db(text: str):
+    threading_list = []
     # Construir ranking a partir de cada listado de archivos recibidos gracias al tf_idf
+    for i, cluster in enumerate(clusters):
+        t = threading.Thread(target=match_by_name,args=(text,), name=f't{i}')
+        threading_list.append(t)
+        #matched = match_by_name(text)
+    for t in threading_list:
+        t.start()
+    for t in threading_list:
+        t.join()
+
     return tf_idf(text)#{"data": id}
 
 @app.post("/files")
@@ -197,3 +216,4 @@ def delete_file(folder_name: str = Form(...)):
     }, status_code=200)
 
 app.include_router(router)
+init_servers()
