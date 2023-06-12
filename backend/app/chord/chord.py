@@ -35,7 +35,7 @@ class ChordNode:
       self.MAXPROC = chan["MAXPROC"]                # Maximum num of processes     #-
 
       # self.nodeID  = int(self.chan.join('node', node_address.ip, node_address.port)) # Find out who you are         #-
-      self.nodeID = self.join_leader(node_address)
+      self.nodeID = int(self.join_leader(node_address))
       self.FT      = [None for i in range(self.nBits+1)] # FT[0] is predecessor #-
       self.nodeSet = []                           # Nodes discovered so far     #-
       self.nodeSetDict = {}
@@ -184,7 +184,9 @@ class ChordNode:
     self.nodeSet.sort()                                                       #-
 #-
   def finger(self, i):
-    succ = (self.nodeID + pow(2, i-1)) % self.MAXPROC    # succ(p+2^(i-1))
+    print("Inside finger", type(self.nodeID), type(self.MAXPROC), type(pow(2, i-1)))
+
+    succ = (int(self.nodeID) + pow(2, i-1)) % self.MAXPROC    # succ(p+2^(i-1))
     lwbi = self.nodeSet.index(self.nodeID)               # own index in nodeset
     upbi = (lwbi + 1) % len(self.nodeSet)                # index next neighbor
     for k in range(len(self.nodeSet)):                   # go through all segments
@@ -194,7 +196,11 @@ class ChordNode:
     return None                                                                #-
 
   def recomputeFingerTable(self):
-    self.FT[0]  = self.nodeSet[self.nodeSet.index(self.nodeID)-1] # Predecessor
+    # if self.nodeSet.__contains__(self.nodeID-1):
+    try:
+      self.FT[0]  = self.nodeSet[self.nodeSet.index(self.nodeID)-1] # Predecessor
+    except:
+      self.FT[0] = self.nodeID
     self.FT[1:] = [self.finger(i) for i in range(1,self.nBits+1)] # Successors
 
   def localSuccNode(self, key):
