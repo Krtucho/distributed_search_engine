@@ -1,0 +1,10 @@
+ID: 670
+Title: on blunt-body heat transfer at hypersonic speed and low reynolds
+number .
+Author: ferri, a. zakkay, v. and ting, l.
+Body:
+on blunt-body heat transfer at hypersonic speed and low reynolds
+number .
+a discussion of differences arising between experimental and analytical
+results, in particular those due to inconsistencies introduced in the
+presentation of data and the way the comparison is made .

@@ -4,17 +4,16 @@ def create_txt_files(filename, path_save):
     with open(filename, 'r') as file:
         data = file.read()
         
-    documents = re.split(r'\.I (\d+)', data)
+    documents = re.split(r'\.I \d+', data)
     documents = [doc.strip() for doc in documents if doc.strip()]
     
     for i, doc in enumerate(documents, start=1):
-        doc_id = re.search(r'\.I (\d+)', doc)
-        title = re.search(r'\.T\n(.+?)\n', doc, re.DOTALL)
-        author = re.search(r'\.A\n(.+?)\n', doc, re.DOTALL)
+        doc_id_text = i
+        title = re.search(r'\.T\n([\s\S]*?)\.A\n', doc, re.DOTALL)
+        author = re.search(r'\.A\n([\s\S]*?)\.B\n', doc, re.DOTALL)
         body = re.search(r'\.W\n(.+)', doc, re.DOTALL)
         
-        if doc_id and title and author and body:
-            doc_id_text = doc_id.group(1)
+        if doc_id_text and title and author and body:
             title_text = title.group(1).strip()
             author_text = author.group(1).strip()
             body_text = body.group(1).strip()
