@@ -254,7 +254,7 @@ def chord_replication_routine():
         while not stopped:
             # Obtener el sucesor
             next_id, next_address = node.localSuccNode(node.nodeID)
-            print(next_id, next_address)
+            print("Successor", next_id, next_address)
             # Buscar si el siguiente nodo sigue activo
             # Verificar si ya se replico la informacion al sucesor
             # Al hacer la peticion verifico si sigue activo y ademas si ya se replico la info
@@ -293,6 +293,9 @@ def chord_replication_routine():
                 # Si aun no se tiene predecesor, esperamos a que el venga a buscarnos
 
             # TODO: Agregar rutina de FixFinger para que se ejecute a cada rato
+            node.recomputeFingerTable() #-
+            print("FT", node.FT)
+            # print('FT[','%04d'%node.nodeID,']: ',['%04d' % k for k in node.FT]) #- 
             
             print(node)
 
@@ -304,7 +307,7 @@ def chord_replication_routine():
         stopped = True
 
 def init_servers():
-    node.run()
+    # node.run()
     print("Node Run")
     # t1 = threading.Thread(target=node.run)
     t2 = threading.Thread(target=chord_replication_routine)
