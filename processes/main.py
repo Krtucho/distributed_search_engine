@@ -220,9 +220,7 @@ def download_file(url: str):
     # Se le pide al servidor que se encuentra en url el archivo
     # server = f'{cluster}'
     # print(server)
-    file = download_file(url=url)#requests.get(url, verify=False)
-
-
+    file = download_file(url=url)#requests.get(url, verify=False
     return FileResponse(getcwd() + "/" + file, media_type="application/octet-stream", filename=file)
 
 # Server
