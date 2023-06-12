@@ -20,13 +20,13 @@ clusters = ['localhost']
 
 # Chord
 first_server_address_ip = 'localhost'
-first_server_address_port = 10000
+first_server_address_port = 10001
 
 # Chord Thread
 stopped = False
 
 server = 'localhost'
-port = 10000
+port = 10002
 
 TIMEOUT = 20
 
@@ -112,7 +112,8 @@ class File(BaseModel):
     # editorial: Optional[str]
 
 class Message(BaseModel):
-    server: str
+    server_ip: str
+    server_port: int
     content: str
 
 class AddressModel(BaseModel):
@@ -167,6 +168,7 @@ channel: Channel = None
 node = ChordNode(channel, Address(first_server_address_ip, 
                                   first_server_address_port), 
                             Address(server, port))
+channel = node.chan
 # Chord endpoints
 @app.post('/chord/receive/{text}')
 def receive_notification(text: str):
@@ -209,17 +211,27 @@ def send_notification(message: Message):
     return {"server":f"Server: {message.server}","msg": f"msg: {message.content}"}
 
 # Chord Channel Endpoints
+def parse_server(message:Message):
+    temp = dict(message.server)
+    print(temp)
+    return temp
+
 @app.post("/chord/channel/join")
 def send_message(message: Message):
-    return {"server":f"Server: {message.server}","msg": f"msg: {message.content}"}
-
+    print(message.server_ip, message.server_port, message.content)
+    # parse_server(message)
+    nodeID  = int(node.chan.join('node', message.server_ip, message.server_port)) # Find out who you are         #-
+    # return {"server":f"Server: {message.server}","msg": f"msg: {message.content}"}
+    return nodeID
 @app.get('/chord/channel/info')
-def get_channel_members(text: str):
-    return {"osmembers":channel.osmembers, "nBits":channel.nBits, "MAXPROC":channel.MAXPROC, "address":channel.address }#search_by_text(text)#{"data": id}
+def get_channel_members():
+    return {"osmembers":node.chan.osmembers, "nBits":node.chan.nBits, "MAXPROC":node.chan.MAXPROC, "address":node.chan.address }#search_by_text(text)#{"data": id}
+
+
 
 @app.get('/chord/channel/members')
-def get_channel_members(text: str):
-    return {"osmembers":channel.osmembers, "nBits":channel.nBits, "MAXPROC":channel.MAXPROC }#search_by_text(text)#{"data": id}
+def get_channel_members():
+    return {"osmembers":node.chan.osmembers, "nBits":node.chan.nBits, "MAXPROC":node.chan.MAXPROC }#search_by_text(text)#{"data": id}
 
 # Chord Replication Endpoints
 # Si el predecesor envia un mensaje para replicarse, el sucesor guarda la informacion del mismo
@@ -232,23 +244,12 @@ def get_channel(text: str):
 def get_channel(address: AddressModel):
     return node.check_pred_data(Address(address.ip, address.port))#return {"osmembers":channel.osmembers, "nBits":channel.nBits, "MAXPROC":channel.MAXPROC }#search_by_text(text)#{"data": id}
 
-def get_files():
-    pass
 
-def upload_content(file):
-    pass
-
-def make_replication(next_id, next_address, content=None):
-    if not content:
-        # Si no se pasa ningun contenido, asumimos que se va a replicar el mismo en su sucesor
-        for file in get_files():
-            upload_content(file)
-    else:
-        upload_content()
 
 def chord_replication_routine():
     print("Started Node Replication Routine")
     print("Timeout: ", TIMEOUT)
+    stopped = False
     try:
         while not stopped:
             # Obtener el sucesor
@@ -268,13 +269,13 @@ def chord_replication_routine():
                 text = r.text()
                 if not text == "True":
                     #   Si no se ha replicado, replicalo!
-                    make_replication(next_id, next_address)
+                    node.make_replication(next_id, next_address)
             # Si el siguiente se cayo, vuelvela a copiar, busca primero el nodo
             else:
                 node.update_succesors()
                 succ = node.get_succesor()
                 if succ:
-                    make_replication(next_id, next_address)
+                    node.make_replication(next_id, next_address)
 
             # Busca si el de atras ya existe:
             if node.predecessor:
@@ -287,12 +288,14 @@ def chord_replication_routine():
                     content = node.merge()
                     # Este nuevo contenido pasaselo a tu sucesor si es q no ha cambiado, si cambio, pasale el nuevo contenido mas
                     # el tuyo
-                    make_replication(next_id, next_address, content)
+                    node.make_replication(next_id, next_address, content)
             # else:
                 # Si aun no se tiene predecesor, esperamos a que el venga a buscarnos
 
             # TODO: Agregar rutina de FixFinger para que se ejecute a cada rato
             
+            print(node)
+
             # Reccess
             print(f"On Thread...Sleeping for {TIMEOUT} seconds")
             time.sleep(TIMEOUT)

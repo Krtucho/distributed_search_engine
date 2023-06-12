@@ -14,6 +14,15 @@ class Address:
 	
 	def __repr__(self) -> str:
 		return f"ip:{self.ip}, port:{self.port}"
+	
+	@staticmethod
+	def extract_ip_port(address):
+		if isinstance(address, Address):
+			return address
+		try:
+			return Address(address["ip"], address["port"])
+		except Exception as e:
+			print(e)
 
 class PubMessage:
 	def __init__(self, address:Address, msg) -> None:
@@ -39,6 +48,8 @@ class Channel():
 			return None
 		
 	def get_members(self, type='node'):
+		print("members keys", self.osmembers.keys())
+		print(self.osmembers)
 		return set(self.osmembers.keys())
            
 	def join(self, subgroup, address, port):
@@ -56,7 +67,9 @@ class Channel():
     
     
 	def publish(self, caller, dst, message):
-		return PubMessage(Address(self.osmembers[dst].address, self.osmembers[dst].port))
+		# print("On publish method", )
+		address = Address.extract_ip_port(self.osmembers[dst])
+		return PubMessage(address=address, msg=message)
 
 	def sendTo(self, caller, destinationSet, message):
 		# caller = self.osmembers[os.getpid()]
