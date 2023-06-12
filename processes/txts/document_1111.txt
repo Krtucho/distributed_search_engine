@@ -1,0 +1,10 @@
+ID: 1111
+Title: some research on high speed flutter .
+Author: garrick, i.e.
+Body:
+some research on high speed flutter .
+paper presents brief discussions of many topics currently of interest in
+ the flutter field . these include /a/ the sonic speed case, /b/
+oscillating pressure field of propellers, /c/ wing flutter with various
+configurations including effects of body modes, and /d/ propeller stall
+flutter .
