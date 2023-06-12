@@ -1,0 +1,11 @@
+ID: 880
+Title: the design and testing of supersonic flutter models .
+Author: mccarthy, j.f. and halfman, r.l.
+Body:
+the design and testing of supersonic flutter models .
+the basic problems of flutter testing in the low supersonic speed range
+simulate full-scale airplanes when mach number is included as a
+parameter are reviewed and are compared with those where velocity is scaled
+when the leading edges become transonic,. these are compared with
+results given elsewhere and serve as a check on the results of tables
+i and ii .
