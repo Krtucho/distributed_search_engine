@@ -4,7 +4,7 @@ from typing import Optional
 import requests # Para realizar peticiones a otros servers y descargar archivos
 from file_handler import *
 from fastapi.middleware.cors import CORSMiddleware
-from database import DataB
+from database import DataB, Text, convert_text_to_text_class
 
 import threading
 
@@ -16,8 +16,9 @@ servers = ['localhost']
 clusters = ['localhost']
 database = DataB()
 port = 10001 #cambiar al cambiar de server
-path_db = './databases/db_3.db' #cambiar al cambiar de server
-
+path_db = '/home/roxy/Roxana-linux/SD/distributed_search_engine/processes/databases/db_3.db' #cambiar al cambiar de server
+path_txts = '/home/roxy/Roxana-linux/SD/distributed_search_engine/processes/txts'
+files_name = ['document_1.txt', 'document_2.txt', 'document_3.txt']
 app = FastAPI()
 
 # Configuración de CORS
@@ -44,7 +45,7 @@ files = [
     "id":0, 
     "file":{"file_name": "Archivo de Roxana", "server_number": 0}
     },
-    {
+    { 
     "id":1, 
     "file":{"file_name": "Archivo de Paula", "server_number": 0}
     },
@@ -54,11 +55,6 @@ files = [
     }
 ]
 
-
-# def search_file(id):
-#     return [file["file"] for file in files if file["id"] == id]
-
-
 def send_notification(cluster, text: str, results):
     print("ENTRO EN SEND NOTIFICATION")
     print("Hilo en ejecución: {}".format(threading.current_thread().name))
@@ -67,13 +63,13 @@ def send_notification(cluster, text: str, results):
     print(server)
     r = requests.get(server, verify=False)
     
-    print("R:")
+    print("\R:")
     print(r)
     print(r.content)
     print(r.text)
+    print("R/")
     results.extend(r)  # Add matched documents to the shared list
     
-
 def search_by_text(text: str):
     print(text)
     print("ENTRO EN SEARCH BY TEXT")
@@ -117,16 +113,23 @@ def tf_idf(textt: str):
 def match_by_name(text:str, datab):
     print("ENTRO EN MATCH BY NAME")
     print("Hilo en ejecución: {}".format(threading.current_thread().name))
-    select_files = f"SELECT name FROM File WHERE File.name = '{text}'"
-    result = datab.execute_read_query(select_files)
-    print("RESULTADO ",result)
-    return result
+    select_files_title = f"SELECT Title FROM File WHERE File.Title = '{text}'"
+    select_files_author = f"SELECT Authot FROM File WHERE File.Author = '{text}'"
+    result_1 = datab.execute_read_query(select_files_title)
+    result_2 = datab.execute_read_query(select_files_title)
+    print("RESULTADO TITLE",result_1)
+    print("RESULTADO AUTHOR",result_2)
+    return result_1,result_2 
 
+#Este metodo carga la base de datos del server al ser levantado este
 def init_servers(datab): # De los servers yo se su IP
     print("INIT SERVERS")
+    text_list = convert_text_to_text_class(path_txts,files_name)
     datab.create_connection(path_db)
-    datab.insert_file("Hakuna_Matata")
-    datab.insert_file("El viejo y el mar")
+    for file in text_list:
+        datab.insert_file(file)
+    print("SALIO DEL INIT")
+   
 
 class File(BaseModel):
     file_name: str

@@ -1,0 +1,32 @@
+@charset "utf-8";
+
+.card1, .card3
+{
+  background : #1E90FF;
+  background : rgba(30, 144, 255, 1);
+  width : 770px;
+  height : 186px;
+  border-radius : 21px;
+  -moz-border-radius : 21px;
+  -webkit-border-radius : 21px;
+}
+
+.card2
+{
+  background : #116CEF;
+  background : rgba(17, 108, 239, 1);
+  width : 770px;
+  height : 186px;
+  border-radius : 21px;
+  -moz-border-radius : 21px;
+  -webkit-border-radius : 21px;
+}
+
+.card_header_text
+{
+  font-family : Berlin Sans FB Demi;
+  font-weight : bold;
+  font-size : 22px;
+  color : #FFFFFF;
+  color : rgb(255, 255, 255);
+}

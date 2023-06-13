@@ -1,0 +1,47 @@
+<q-card class="my-card">
+     <q-card-section>
+        <div class="text-h6 autenticacion_text">Autenticacion</div>
+      </q-card-section>
+ <!--
+      <q-card-section>
+        <q-input :input-class="{ 'register_input_bg': isInput }" use-input outlined v-model="text"  label="Outlined" />
+         <div class="register_input_bg"></div> 
+        <q-input :input-style="{  borderRadius : '12px'}" outlined v-model="text"  label="Outlined" /> 
+         <div class="register_input_bg"></div> 
+      </q-card-section>
+    
+
+      <q-card-section>
+      </q-card-section>
+      -->
+    </q-card>
+
+<style lang="sass" scoped>
+.my-card
+  width: 100%
+  max-width: 250px
+  height: 100%
+.my-div
+  width: 100%
+  margin: 0
+  padding: 0
+.autenticacion_text
+  font-family : Berlin Sans FB Demi
+  font-weight : bold
+  font-size : 2.5em
+  color : #43AAFF
+  color : rgb(67, 170, 255)
+.register_input_bg
+  background : #FEFEFE
+  background : rgba(254, 254, 254, 1)
+  border-style : Solid
+  border-color : #3D3D3D
+  border-color : rgba(61, 61, 61, 1)
+  border-width : 1px
+  // width : 186px
+  // height : 42px
+  border-radius : 12px
+  -moz-border-radius : 12px
+  -webkit-border-radius : 12px
+
+</style>

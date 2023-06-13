@@ -1,0 +1,73 @@
+@charset "utf-8";
+.register_bg
+{
+  background : #F7F7F7;
+  background : rgba(247, 247, 247, 1);
+  border-style : Solid;
+  border-color : #DBDBDB;
+  border-color : rgba(219, 219, 219, 1);
+  border-width : 1px;
+  width : 305px;
+  height : 446px;
+  border-radius : 36px;
+  -moz-border-radius : 36px;
+  -webkit-border-radius : 36px;
+}
+
+.register_btn_bluebg
+{
+  background : #43AAFF;
+  background : rgba(67, 170, 255, 1);
+  border-style : Solid;
+  border-color : #43AAFF;
+  border-color : rgba(67, 170, 255, 1);
+  border-width : 1px;
+  width : 141px;
+  height : 32px;
+  border-radius : 12px;
+  -moz-border-radius : 12px;
+  -webkit-border-radius : 12px;
+}
+
+.registrarse_text
+{
+  font-family : Berlin Sans FB Demi;
+  font-weight : bold;
+  font-size : 26px;
+  color : #FFFFFF;
+  color : rgb(255, 255, 255);
+}
+
+.registro_text
+{
+  font-family : Berlin Sans FB Demi;
+  font-weight : bold;
+  font-size : 44px;
+  color : #43AAFF;
+  color : rgb(67, 170, 255);
+}
+
+.seguridad_text, .informacion_personal_text, .informacion_del_centro_text
+{
+  font-family : Trebuchet MS;
+  font-weight : bold;
+  font-size : 20px;
+  color : #058F99;
+  color : rgb(5, 143, 153);
+}
+
+.register_input_bg
+{
+  background : #FEFEFE;
+  background : rgba(254, 254, 254, 1);
+  border-style : Solid;
+  border-color : #3D3D3D;
+  border-color : rgba(61, 61, 61, 1);
+  border-width : 1px;
+  width : 186px;
+  height : 42px;
+  border-radius : 12px;
+  -moz-border-radius : 12px;
+  -webkit-border-radius : 12px;
+}
+
