@@ -13,7 +13,7 @@ import threading
 servers = ['localhost']
 
 # Clusters of n servers. Update when a new server joins
-clusters = ['localhost']
+clusters = ['localhost:10002','localhost:10003']
 database = DataB()
 port = 10001 #cambiar al cambiar de server
 path_db = '/home/roxy/Roxana-linux/SD/distributed_search_engine/processes/databases/db_3.db' #cambiar al cambiar de server
@@ -91,8 +91,8 @@ def search_by_text(text: str):
     for t in threading_list:
         t.join()
     
-    print(results)
-    # Make Ranking
+    print(results) 
+    # Make Ranking 
     # Luego de esperar cierta cantidad de segundos por los rankings pasamos a hacer un ranking general de todo lo q nos llego
     # TODO: Si alguna pc se demora mucho en devolver el ranking, pasamos a preguntarle a algun intregrante de su cluster que es lo que sucede
 
@@ -226,7 +226,7 @@ def download_file(url: str):
     file = download_file(url=url)#requests.get(url, verify=False
     return FileResponse(getcwd() + "/" + file, media_type="application/octet-stream", filename=file)
 
-# Server
+# Server #asi es la forma del endpoint para descargar
 @router.get("/api/download/{name_file}")
 def download_file(name_file: str):
     return FileResponse(getcwd() + "/" + name_file, media_type="application/octet-stream", filename=name_file)
