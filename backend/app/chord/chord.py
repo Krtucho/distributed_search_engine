@@ -2,14 +2,14 @@ from chord.channel import * #-
 import random, math #-
 from chord.constChord import * #-
 #-
-import requests
+import requests, os
 
 m = 5
 n = 8
 
 class ChordNode:
 #-
-  def __init__(self, chan: Channel, first_server_address: Address, node_address:Address):#-
+  def __init__(self, chan: Channel, first_server_address: Address, node_address:Address, file_path="downloads/"):#-
     print(f"Started ChordNode for address: {node_address}") 
     self.is_leader = False
     self.leader = first_server_address
@@ -43,7 +43,7 @@ class ChordNode:
     self.node_address = node_address
 
     # Replication
-    self.successors = []
+    self.successors = self.FT
     self.predecessor = None
 
     self.pred_data = {}
@@ -53,6 +53,14 @@ class ChordNode:
 
     self.data = {}
     self.successor_active = False
+
+    self.file_path = file_path
+    try:
+      print("Listing Dir", os.listdir(self.file_path))
+      self.data[self.nodeID] = os.listdir(self.file_path)
+    except:
+      print("Error Listing Dir")
+    # self.data[self.nodeID] = [file for file in  os.listdir(self.file_path)]
 
     self.run()
     self.update_succesors()
@@ -65,11 +73,14 @@ class ChordNode:
   def __repr__(self):
     return f"NODO: Address: {self.node_address} node_id: {self.nodeID} successors: {self.successors} predecessor: {self.predecessor}"
 
+  def get_predecessor(self):
+    return self.FT[0]
+
   def join_leader(self, node_address):
     # server = '{"ip":'+f'"{node_address.ip}", "port":{node_address.port}'+'}'
     # print("server", server)
     data = {"server_ip":node_address.ip, "server_port":node_address.port, "content":"JOIN"}#'{"server"'+f':server, "content":"JOIN"'+'}'
-    print("data", data)
+    # print("data", data)
     r = requests.post(f"http://{self.leader.ip}:{self.leader.port}/chord/channel/join", json=data)
     
     # print(r)
@@ -82,18 +93,34 @@ class ChordNode:
     return None
   
   def get_files(self):
+    print(self.data[self.nodeID])
+    # TODO: Se supone que luego en self.data[self.nodeID] se encuentre una lista con las replicas de todos los servidores caidos y de el mismo 
+    file_list = [self.data[node_id] for node_id in self.data.keys()]
+    files = []
+    for list_file in file_list:
+      files.extend(list_file)
+    # files = file_list.#[file for file in file_list]
+    # print(files)
+    return files#[data for data in self.data[node_id]]#self.data[self.nodeID]
+
+  def upload_content(self, next_id, next_address, file):
     pass
 
-  def upload_content(self, file):
-    pass
-
+  def set_confirmation(self, next_id, next_address):
+    data = {"node_id":self.nodeID, "ip":self.node_address.ip, "port":self.node_address.port}
+    r = requests.post(f"http://{next_address.ip}:{next_address.port}/chord/data/done", data=data)
+  
   def make_replication(self, next_id, next_address, content=None):
+    print("Making Replication")
     if not content:
         # Si no se pasa ningun contenido, asumimos que se va a replicar el mismo en su sucesor
         for file in self.get_files():
-            self.upload_content(file)
+          self.upload_content(next_id, next_address, file)
+          self.set_confirmation(next_id, next_address)
     else:
-        self.upload_content(content)
+        if next_address == self.node_address:
+          return
+        self.upload_content(next_id, next_address, content)
 
   # Predecessor
   def merge(self):
@@ -108,21 +135,32 @@ class ChordNode:
     self.successors.pop(0)
 
   def update_succesors(self):
+    print("Before Update", self.chan.osmembers)
     if not self.is_leader:
       self.chan.osmembers = self.ask_members_to_leader()
+      print("After update", self.chan.osmembers)
       for node in self.chan.osmembers.keys():
         self.addNode(node)
     next_id, next_address = self.localSuccNode(self.nodeID)
     print("Next Node", " Next ID: ", next_id, " Next_address: ", next_address)
 
   def get_succesor(self):
-    if len(self.successors) == 0:
+    if self.FT[1] == None or self.FT[1] == self.nodeID:#len(self.successors) == 0:
       return None
-    return self.successors[0]
+    return self.FT[0]
 
   def check_pred_data(self, nodeId, node_Address: Address):
+    if node_Address == self.node_address:
+      return True
     return self.pred_data_copied and self.pred_data.get(nodeId)
   
+  def confirm_pred_data_info(self, node_id, node_address, files=None):
+    # if self.get_predecessor() == node_id:
+    self.predecessor = node_id
+    self.pred_data[node_id] = files
+    self.pred_active = True
+    self.pred_data_copied = True
+
   def restart_pred_data_info(self, nodeId, node_Address):
     self.pred_data[nodeId] = None
     self.pred_active = False
@@ -145,6 +183,8 @@ class ChordNode:
   def ask_members_to_leader(self):
     # leader_address = self.chan[self.leader]
     if self.is_leader:
+      for node in self.chan.osmembers.keys():
+        self.addNode(node)
       return self.chan.osmembers
     r = requests.get(f"http://{self.leader.ip}:{self.leader.port}/chord/channel/members/")
     print(r)
@@ -196,12 +236,14 @@ class ChordNode:
     return None                                                                #-
 
   def recomputeFingerTable(self):
+    print("Recomputing FingerTable...")
     # if self.nodeSet.__contains__(self.nodeID-1):
     try:
       self.FT[0]  = self.nodeSet[self.nodeSet.index(self.nodeID)-1] # Predecessor
     except:
       self.FT[0] = self.nodeID
     self.FT[1:] = [self.finger(i) for i in range(1,self.nBits+1)] # Successors
+    print(self.FT)
 
   def localSuccNode(self, key):
     if len(self.nodeSet) <= 1:
@@ -227,6 +269,34 @@ class ChordNode:
         requests.post(f"http://{server.address.ip}:{server.address.port}/")
     self.recomputeFingerTable() #-
  #-
+
+
+ # Leader
+  def node_is_alive(self, node_id):
+    address = self.chan.get_member(node_id)
+    r = None
+    try:
+      r = requests.get(f"http://{address.ip}:{address.port}", timeout=3)
+    except Exception as e:
+      print(e)
+
+    if r and r.ok:
+      return True
+    else:
+      return False
+ 
+  def check_live_nodes(self):
+    has_changed: bool = False
+    for node in self.chan.osmembers.keys():
+      if node == self.nodeID:
+        continue
+      if not self.node_is_alive(node):
+        self.delNode(node)
+        self.chan.remove_member(node)
+        has_changed = True
+
+    if has_changed:
+      self.recomputeFingerTable()
    
  #-
 # class ChordClient: #-

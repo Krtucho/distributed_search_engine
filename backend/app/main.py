@@ -20,13 +20,13 @@ clusters = ['localhost']
 
 # Chord
 first_server_address_ip = 'localhost'
-first_server_address_port = 10001
+first_server_address_port = 10000
 
 # Chord Thread
 stopped = False
 
 server = 'localhost'
-port = 10002
+port = 10001
 
 TIMEOUT = 20
 
@@ -117,6 +117,7 @@ class Message(BaseModel):
     content: str
 
 class AddressModel(BaseModel):
+    node_id:int
     ip:str
     port:int
 
@@ -220,7 +221,11 @@ def parse_server(message:Message):
 def send_message(message: Message):
     print(message.server_ip, message.server_port, message.content)
     # parse_server(message)
-    nodeID  = int(node.chan.join('node', message.server_ip, message.server_port)) # Find out who you are         #-
+    nodeID = None
+    if node.is_leader:
+        nodeID  = int(node.chan.join('node', message.server_ip, message.server_port)) # Find out who you are         #-
+        node.addNode(nodeID)
+        node.recomputeFingerTable()
     # return {"server":f"Server: {message.server}","msg": f"msg: {message.content}"}
     return nodeID
 @app.get('/chord/channel/info')
@@ -239,10 +244,15 @@ def get_channel_members():
 def get_channel(text: str):
     return {"osmembers":channel.osmembers, "nBits":channel.nBits, "MAXPROC":channel.MAXPROC }#search_by_text(text)#{"data": id}
 
+# Confirmar que ya se replico la informacion en el siguiente nodo
+@app.post('/chord/succ/data/done')
+def post_data(address: AddressModel):
+    return node.confirm_pred_data_info(address.node_id, Address(address.ip, address.port))#node.check_pred_data(address.node_id, Address(address.ip, address.port))#return {"osmembers":channel.osmembers, "nBits":channel.nBits, "MAXPROC":channel.MAXPROC }#search_by_text(text)#{"data": id}
+
 # Verificar si ya se replico la informacion en el siguiente nodo
-@app.get('/chord/succ/data')
-def get_channel(address: AddressModel):
-    return node.check_pred_data(Address(address.ip, address.port))#return {"osmembers":channel.osmembers, "nBits":channel.nBits, "MAXPROC":channel.MAXPROC }#search_by_text(text)#{"data": id}
+@app.post('/chord/succ/data')
+def verify_data(address: AddressModel):
+    return node.check_pred_data(address.node_id, Address(address.ip, address.port))#return {"osmembers":channel.osmembers, "nBits":channel.nBits, "MAXPROC":channel.MAXPROC }#search_by_text(text)#{"data": id}
 
 
 
@@ -261,20 +271,21 @@ def chord_replication_routine():
             data = {}
             r = None
             if (not next_id == None ) and (not next_address == None):
-                data = {"ip":next_address.ip,"port": next_address.port}
-                r = requests.get(f"http://{next_id}:{next_address}/chord/succ/data", data=data, timeout=TIMEOUT)
+                next_address = Address.extract_ip_port(next_address)
+                data = {"node_id":next_id, "ip":next_address.ip,"port": int(next_address.port)}
+                r = requests.post(f"http://{next_address.ip}:{next_address.port}/chord/succ/data", json=data, timeout=TIMEOUT)
 
             # Si no se ha replicado la informacion. Copiala
             if r:
-                text = r.text()
-                if not text == "True":
+                text = bool(r.text)
+                if not text:
                     #   Si no se ha replicado, replicalo!
                     node.make_replication(next_id, next_address)
             # Si el siguiente se cayo, vuelvela a copiar, busca primero el nodo
             else:
                 node.update_succesors()
-                succ = node.get_succesor()
-                if succ:
+                node.succ = node.get_succesor()
+                if node.succ:
                     node.make_replication(next_id, next_address)
 
             # Busca si el de atras ya existe:
@@ -297,6 +308,9 @@ def chord_replication_routine():
             print("FT", node.FT)
             # print('FT[','%04d'%node.nodeID,']: ',['%04d' % k for k in node.FT]) #- 
             
+            if node.is_leader:
+                node.check_live_nodes()
+
             print(node)
 
             # Reccess

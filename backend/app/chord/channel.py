@@ -41,8 +41,13 @@ class Channel():
 		self.MAXPROC   = pow(2, nBits)
 		self.address = address
 
-	def get_member(self, node_id):
+	def get_member(self, node_id:int):
+		node_id:str = str(node_id)
+		print("INSIDE GET_MEMBER", "Osmembers:", self.osmembers)
+		print("INSIDE GET_MEMBER", "osmembers on node_id: ", self.osmembers[node_id], "Osmembers:", self.osmembers)
+
 		try:
+			print("INSIDE GET_MEMBER AND TRY", "osmembers on node_id: ", self.osmembers[node_id], "Osmembers:", self.osmembers)
 			return self.osmembers[node_id]
 		except:
 			return None
@@ -52,6 +57,9 @@ class Channel():
 		print(self.osmembers)
 		return set(self.osmembers.keys())
            
+	def remove_member(self, node_id):
+		self.osmembers.pop(node_id)
+
 	def join(self, subgroup, address, port):
 		# members = self.channel.smembers('members')
 		newpid = random.choice(list(set([str(i) for i in range(self.MAXPROC)]) - self.get_members()))
