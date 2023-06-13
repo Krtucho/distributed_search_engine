@@ -1,0 +1,50 @@
+@charset "utf-8"; 
+
+.autenticacion_text
+{
+  font-family : Berlin Sans FB Demi;
+  font-weight : bold;
+  font-size : 44px;
+  color : #43AAFF;
+  color : rgb(67, 170, 255);
+}
+
+.desea_crearse_una_cuenta_text
+{
+  font-family : Myriad Pro;
+  font-size : 21px;
+  color : #249CFF;
+  color : rgb(36, 156, 255);
+}
+
+.ha_olvidado_su_contrasenna_text
+{
+  font-family : Myriad Pro;
+  font-size : 17px;
+  color : #249CFF;
+  color : rgb(36, 156, 255);
+}
+
+.enter_btn_bluebg
+{
+  background : #43AAFF;
+  background : rgba(67, 170, 255, 1);
+  border-style : Solid;
+  border-color : #43AAFF;
+  border-color : rgba(67, 170, 255, 1);
+  border-width : 1px;
+  width : 104px;
+  height : 32px;
+  border-radius : 12px;
+  -moz-border-radius : 12px;
+  -webkit-border-radius : 12px;
+}
+
+.entrar_text
+{
+  font-family : Berlin Sans FB Demi;
+  font-weight : bold;
+  font-size : 26px;
+  color : #FFFFFF;
+  color : rgb(255, 255, 255);
+}

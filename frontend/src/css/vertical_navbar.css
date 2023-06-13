@@ -1,0 +1,46 @@
+@charset "utf-8"; 
+
+.background
+{
+  background : #1E90FF;
+  background : rgba(30, 144, 255, 1);
+  width : 376px;
+  height : 702px;
+}
+
+.tabs_text
+{
+  font-family : Berlin Sans FB Demi;
+  font-weight : bold;
+  font-size : 21px;
+  color : #FFFFFF;
+  color : rgb(255, 255, 255);
+}
+
+.drop_elems_text
+{
+  font-family : Berlin Sans FB Demi;
+  font-weight : bold;
+  font-size : 21px;
+  color : #FFFFFF;
+  color : rgb(255, 255, 255);
+}
+
+.line
+{
+  border-style : Solid;
+  border-color : #FFFFFF;
+  border-color : rgba(255, 255, 255, 1);
+  border-width : 1px;
+  width : 262px;
+  height : 0px;
+}
+
+.drop_btn
+{
+  background : #FFFFFF;
+  background : rgba(255, 255, 255, 1);
+  width : 9px;
+  height : 18px;
+}
+

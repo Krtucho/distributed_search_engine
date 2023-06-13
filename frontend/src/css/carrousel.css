@@ -1,0 +1,27 @@
+@charset "utf-8"; 
+
+.card_bg
+{
+  background : #F7F7F7;
+  background : rgba(247, 247, 247, 1);
+  border-style : Solid;
+  border-color : #1E90FF;
+  border-color : rgba(30, 144, 255, 1);
+  border-width : 5px;
+  width : 451px;
+  height : 290px;
+  border-radius : 49px 0px 52px 0px;
+  -moz-border-radius : 49px 0px 52px 0px;
+  -webkit-border-radius : 49px 0px 52px 0px;
+} 
+
+.picture_space
+{
+  background : #999999;
+  background : rgba(153, 153, 153, 1);
+  width : 178px;
+  height : 178px;
+  border-radius : 48px 0px 0px 0px;
+  -moz-border-radius : 48px 0px 0px 0px;
+  -webkit-border-radius : 48px 0px 0px 0px;
+}
