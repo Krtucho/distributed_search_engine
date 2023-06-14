@@ -67,7 +67,7 @@ class ChordNode:
     succ = self.get_succesor() # succ seria el id(llave)
     print("Members", self.chan.osmembers)
     if succ:
-      member = self.chan.get_member(succ) # member seria una direccion(Address)
+      member = Address.extract_ip_port(self.chan.get_member(succ)) # member seria una direccion(Address)
       self.make_replication(succ, member)
 
   def __repr__(self):
@@ -104,32 +104,55 @@ class ChordNode:
     return files#[data for data in self.data[node_id]]#self.data[self.nodeID]
 
   def upload_content(self, next_id, next_address, file):
-    pass
+    return file
 
-  def set_confirmation(self, next_id, next_address):
-    data = {"node_id":self.nodeID, "ip":self.node_address.ip, "port":self.node_address.port}
-    r = requests.post(f"http://{next_address.ip}:{next_address.port}/chord/data/done", data=data)
+  def set_confirmation(self, next_id, next_address, files):
+    data = {"node_id":self.nodeID, "ip":self.node_address.ip, "port":self.node_address.port, "files":files}
+    try:
+      r = requests.post(f"http://{next_address.ip}:{next_address.port}/chord/succ/data/done", json=data)
+    except Exception as e:
+      print(e)
   
   def make_replication(self, next_id, next_address, content=None):
     print("Making Replication")
     if not content:
         # Si no se pasa ningun contenido, asumimos que se va a replicar el mismo en su sucesor
+        files = []
         for file in self.get_files():
           self.upload_content(next_id, next_address, file)
-          self.set_confirmation(next_id, next_address)
+          files.append(file)
+        print(next_address)
+        self.set_confirmation(next_id, next_address, files)
     else:
         if next_address == self.node_address:
           return
-        self.upload_content(next_id, next_address, content)
+        
+        try:
+          if self.node_is_alive(self.get_succesor()):
+            # Upload only predecessor content: file
+            files = []
+            for file in content:
+              self.upload_content(next_id, next_address, file)
+              files.append(file)
+            self.set_confirmation(next_id, next_address, files)
+          else:
+            # Find new successor
+            self.update_succesors()
+            # Upload all content
+            files = []
+            for file in content:
+              self.upload_content(next_id, next_address, file)
+              files.append(file)
+            for file in self.get_files():
+              self.upload_content(next_id, next_address, file)
+              files.append(file)
+            # print(next_address)
+            self.set_confirmation(next_id, next_address, files)
+        except:
+          pass
 
-  # Predecessor
-  def merge(self):
-    if self.pred_data:
-      self.data[self.predecessor] = self.pred_data
-    self.last_pred_data = self.pred_data
-    self.pred_data = None
 
-    return self.last_pred_data
+        # files = self.upload_content(next_id, next_address, content, predecessor_content=True)
 
   def remove_succesor(self, node_id):
     self.successors.pop(0)
@@ -152,19 +175,33 @@ class ChordNode:
   def check_pred_data(self, nodeId, node_Address: Address):
     if node_Address == self.node_address:
       return True
+    print("Inside Check Pred Data ID: ", nodeId, node_Address, self.pred_data_copied, self.pred_data.get(nodeId))
     return self.pred_data_copied and self.pred_data.get(nodeId)
   
   def confirm_pred_data_info(self, node_id, node_address, files=None):
     # if self.get_predecessor() == node_id:
-    self.predecessor = node_id
+    self.predecessor = (node_id, node_address)
     self.pred_data[node_id] = files
     self.pred_active = True
     self.pred_data_copied = True
 
-  def restart_pred_data_info(self, nodeId, node_Address):
+  def restart_pred_data_info(self, nodeId):
     self.pred_data[nodeId] = None
     self.pred_active = False
     self.pred_data_copied = False
+    self.predecessor = None
+
+  # Predecessor
+  def merge(self):
+    if self.pred_data:
+      self.data[self.predecessor[0]] = self.pred_data
+    self.last_pred_data = self.pred_data
+    self.pred_data = None
+
+    return self.last_pred_data
+
+  def remove_predecessor(self):
+    self.predecessor = None
     
 #-
   def ask_leader_for_channel(self):
@@ -219,8 +256,9 @@ class ChordNode:
     self.nodeSet.sort()                                                       #-
 #-
   def delNode(self, nodeID):                                                  #-
-    assert nodeID in self.nodeSet, ''                                         #-
-    del self.nodeSet[self.nodeSet.index(nodeID)]                              #-
+    print("Assert_node_id: ", nodeID)
+    assert int(nodeID) in self.nodeSet, ''                                        #-
+    del self.nodeSet[self.nodeSet.index(int(nodeID))]                              #-
     self.nodeSet.sort()                                                       #-
 #-
   def finger(self, i):
@@ -287,13 +325,18 @@ class ChordNode:
  
   def check_live_nodes(self):
     has_changed: bool = False
-    for node in self.chan.osmembers.keys():
-      if node == self.nodeID:
-        continue
-      if not self.node_is_alive(node):
-        self.delNode(node)
-        self.chan.remove_member(node)
-        has_changed = True
+    print("Check for live nodes \n", "NodeSet: ",self.nodeSet, " ChannelMembers: ", self.chan.osmembers)
+    try:
+      for node in self.chan.osmembers.keys():
+        if node == self.nodeID:
+          continue
+        if not self.node_is_alive(node):
+          self.delNode(node)
+          self.chan.remove_member(node)
+          has_changed = True
+    except Exception as e:
+      print(e)
+      has_changed = True
 
     if has_changed:
       self.recomputeFingerTable()

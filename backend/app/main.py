@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 
 import requests # Para realizar peticiones a otros servers y descargar archivos
 
@@ -120,6 +120,9 @@ class AddressModel(BaseModel):
     node_id:int
     ip:str
     port:int
+
+class FilesModel(AddressModel):
+    files:List[str] = []
 
 
 @app.get("/")
@@ -246,8 +249,9 @@ def get_channel(text: str):
 
 # Confirmar que ya se replico la informacion en el siguiente nodo
 @app.post('/chord/succ/data/done')
-def post_data(address: AddressModel):
-    return node.confirm_pred_data_info(address.node_id, Address(address.ip, address.port))#node.check_pred_data(address.node_id, Address(address.ip, address.port))#return {"osmembers":channel.osmembers, "nBits":channel.nBits, "MAXPROC":channel.MAXPROC }#search_by_text(text)#{"data": id}
+def post_data(files: FilesModel):
+    print("Replication Done!", files.files)
+    return node.confirm_pred_data_info(files.node_id, Address(files.ip, files.port), files.files)#node.check_pred_data(address.node_id, Address(address.ip, address.port))#return {"osmembers":channel.osmembers, "nBits":channel.nBits, "MAXPROC":channel.MAXPROC }#search_by_text(text)#{"data": id}
 
 # Verificar si ya se replico la informacion en el siguiente nodo
 @app.post('/chord/succ/data')
@@ -263,7 +267,7 @@ def chord_replication_routine():
     try:
         while not stopped:
             # Obtener el sucesor
-            next_id, next_address = node.localSuccNode(node.nodeID)
+            next_id, next_address = node.get_succesor(), node.chan.get_member(node.get_succesor())#node.localSuccNode(node.nodeID)
             print("Successor", next_id, next_address)
             # Buscar si el siguiente nodo sigue activo
             # Verificar si ya se replico la informacion al sucesor
@@ -272,12 +276,20 @@ def chord_replication_routine():
             r = None
             if (not next_id == None ) and (not next_address == None):
                 next_address = Address.extract_ip_port(next_address)
-                data = {"node_id":next_id, "ip":next_address.ip,"port": int(next_address.port)}
-                r = requests.post(f"http://{next_address.ip}:{next_address.port}/chord/succ/data", json=data, timeout=TIMEOUT)
-
+                data = {"node_id":node.nodeID, "ip":node.node_address.ip,"port": int(node.node_address.port)}
+                try:
+                    r = requests.post(f"http://{next_address.ip}:{next_address.port}/chord/succ/data", json=data, timeout=TIMEOUT)
+                except Exception as e:
+                    print("Error trying to verify data replication")
+                    print(e)
             # Si no se ha replicado la informacion. Copiala
             if r:
-                text = bool(r.text)
+                print("Inside Verifying Data Replication")
+                text = bool(r.json())
+                print(text)
+                print(r.text)
+                print(r.content)
+                print(r.json())
                 if not text:
                     #   Si no se ha replicado, replicalo!
                     node.make_replication(next_id, next_address)
@@ -291,15 +303,21 @@ def chord_replication_routine():
             # Busca si el de atras ya existe:
             if node.predecessor:
 
+                r = None
                 # Busca si se cae el de atras
-                r = requests.get(f"http://{node.predecessor.ip}:{node.predecessor.port}/")
+                try:
+                    r = requests.get(f"http://{node.predecessor[1].ip}:{node.predecessor[1].port}/")
+                except Exception as e:
+                    print(e)
                 # Si se cae el de atras
-                if not r.ok:
+                if not r or not r.ok:
                     # Agrega al conjunto del actual el contenido que tenias del de atras que estaba replicado en ti
                     content = node.merge()
                     # Este nuevo contenido pasaselo a tu sucesor si es q no ha cambiado, si cambio, pasale el nuevo contenido mas
                     # el tuyo
                     node.make_replication(next_id, next_address, content)
+                    # TODO: FixBug TypeError: 'NoneType' object does not support item assignment
+                    node.restart_pred_data_info(node.predecessor[0])
             # else:
                 # Si aun no se tiene predecesor, esperamos a que el venga a buscarnos
 

@@ -43,11 +43,11 @@ class Channel():
 
 	def get_member(self, node_id:int):
 		node_id:str = str(node_id)
-		print("INSIDE GET_MEMBER", "Osmembers:", self.osmembers)
-		print("INSIDE GET_MEMBER", "osmembers on node_id: ", self.osmembers[node_id], "Osmembers:", self.osmembers)
+		# print("INSIDE GET_MEMBER", "Osmembers:", self.osmembers)
+		# print("INSIDE GET_MEMBER", "osmembers on node_id: ", self.osmembers[node_id], "Osmembers:", self.osmembers)
 
 		try:
-			print("INSIDE GET_MEMBER AND TRY", "osmembers on node_id: ", self.osmembers[node_id], "Osmembers:", self.osmembers)
+			# print("INSIDE GET_MEMBER AND TRY", "osmembers on node_id: ", self.osmembers[node_id], "Osmembers:", self.osmembers)
 			return self.osmembers[node_id]
 		except:
 			return None
