@@ -7,6 +7,14 @@ from fastapi.middleware.cors import CORSMiddleware
 #from processes.database import DataB 
 import threading
 
+#### SRI ####
+from vector_model import VectorModel
+from pathlib import Path
+import database
+import os
+#############
+
+
 #VARIABLES DE ENTORNO
 # Api Servers
 servers = ['localhost']
@@ -70,8 +78,13 @@ def send_notification(cluster, text: str):
     # print(r.text)
 
 def search_by_text(text: str):
-    print(text)
+    print("search_by_text, text: ", text)
     ranking = [] # List with the ranking and query documents results
+
+    ####### testing #########
+    # r = tf
+    #########################
+
     # Search text in every server
     # TODO: Paralelizar peticiones a todos los servidores para pedirles sus rankings. https://docs.python.org/es/3/library/multiprocessing.html
     for cluster in clusters: # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
@@ -84,9 +97,23 @@ def search_by_text(text: str):
     # Return Response
     # Retornamos el ranking general de todos los rankings combinados
 
+######## SRI ########
+vm = VectorModel()
+path = Path("txts") # play
+files_name=["document_1.txt","document_2.txt","document_102.txt","document_56.txt","document_387.txt"]
 
+documents_list = database.convert_text_to_text_class(path=path, files_name=files_name)
+
+vm.doc_terms_data(documents_list)
 def tf_idf(textt: str):
-    pass # Paula
+    l = vm.run(textt)
+    print(l)
+    print("hola mundo")
+    print(textt)
+    return l
+    # pass # Paula
+
+#####################
 
 #def match_by_name(datab,text:str):
 #    select_files = f"SELECT name FROM File WHERE File.name = '{text}'"
@@ -133,12 +160,14 @@ def index():
 # Cliente
 @app.get('/files/search/{text}')
 def show_file(text: str):
+    print("show_file, text ", text)
     return search_by_text(text)#{"data": id}
 
 # Server
 # Este es el que llama al TF-IDF
 @app.get('/api/files/search/{text}')
 def search_file_in_db(text: str):
+    print(text)
     threading_list = []
     # Construir ranking a partir de cada listado de archivos recibidos gracias al tf_idf
     #for i, cluster in enumerate(clusters):
@@ -149,7 +178,7 @@ def search_file_in_db(text: str):
     #    t.start()
     #for t in threading_list:
     #    t.join()
-
+    print("search_file_in_database")
     return tf_idf(text)#{"data": id}
 
 @app.post("/files")
