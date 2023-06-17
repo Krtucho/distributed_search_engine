@@ -1,8 +1,13 @@
 #!/bin/bash
-gateway=172.21.0.1
+servers_amount=$1
+gateway=172.21.0.
 network_name=fastapi-quasar
-for i in 1 2 3 4 5 6 7 8 9
+
+
+for (( i=1; i<=$servers_amount; i++ ))
 do
- sudo docker run -it --rm --name backend-$i --network mi_red --ip 192.168.0.2 -e IP= -e PORT=10000 fastapi-files
- echo "backend-$i"
+ let suma=$i+1
+ sudo docker run -it --rm --name backend-$suma --network fastapi-quasar --ip $gateway$suma -e IP=$gateway$suma -e PORT=8000 fastapi-files
+ 
+ echo "backend-$suma ip-$gateway$suma"
 done

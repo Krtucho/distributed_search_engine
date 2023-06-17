@@ -192,7 +192,7 @@ import { defineComponent } from 'vue';
 import { ref } from 'vue'
 
 // import { env } from 'process'
-// import process from 'process/browser';
+import process from 'process/browser';
 
 // import VuePaginate from "vue-paginate";
 // Vue.component("paginate", VuePaginate);
