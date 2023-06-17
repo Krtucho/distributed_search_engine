@@ -1,3 +1,16 @@
+<<<<<<< HEAD
+FROM python:3.9
+
+WORKDIR /code
+
+COPY ./requirements.txt /code/requirements.txt
+
+RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
+
+COPY ./app /code/app
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]
+=======
 # develop stage
 FROM docker.uclv.cu/node:16-alpine as develop-stage
 WORKDIR /frontend
@@ -15,3 +28,4 @@ RUN yarn
 #EXPOSE 80
 #CMD ["nginx", "-g", "daemon off;"]
 CMD [ "quasar", "dev" ]
+>>>>>>> roxy_branch

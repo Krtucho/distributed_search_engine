@@ -1,3 +1,12 @@
+<<<<<<< HEAD
+# distributed_search_engine
+
+```bash
+>sudo docker build -t fastapi-files .
+
+>sudo docker run -d --name fastapi-test1 -p 80:80 fastapi-files
+```
+=======
 # distributed_search_engine
 
 ```bash
@@ -30,9 +39,10 @@
 
 # Network
 ```bash
->docker network create fastapi-quasar
+>sudo docker network create fastapi-quasar
 
->docker network connect fastapi-quasar backend
+>sudo docker network connect fastapi-quasar backend
 
->docker network connect fastapi-quasar frontend
+>sudo docker network connect fastapi-quasar frontend
 ```
+>>>>>>> roxy_branch
