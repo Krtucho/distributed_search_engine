@@ -4,6 +4,8 @@ from chord.constChord import * #-
 #-
 import requests, os
 
+from logs.logs_format import *
+
 m = 5
 n = 8
 
@@ -168,9 +170,17 @@ class ChordNode:
     print("Next Node", " Next ID: ", next_id, " Next_address: ", next_address)
 
   def get_succesor(self):
-    if self.FT[1] == None or self.FT[1] == self.nodeID:#len(self.successors) == 0:
-      return None
-    return self.FT[0]
+    # if self.FT[1] == None or self.FT[1] == self.nodeID:#len(self.successors) == 0:
+    #   return None
+    # Retorname el id del sucesor de self.nodeID en self.nodeSet
+    if len(self.nodeSet) == 0:
+      return int(self.nodeID)
+    for node in self.nodeSet:
+      if node > self.nodeID:
+        return node
+    return self.nodeSet[0]
+    # self.nodeSet
+    # return self.FT[1]
 
   def check_pred_data(self, nodeId, node_Address: Address):
     if node_Address == self.node_address:
@@ -328,8 +338,9 @@ class ChordNode:
     print("Check for live nodes \n", "NodeSet: ",self.nodeSet, " ChannelMembers: ", self.chan.osmembers)
     try:
       for node in self.chan.osmembers.keys():
-        if node == self.nodeID:
+        if int(node) == self.nodeID:
           continue
+        print_info("Checking node: "+ node)
         if not self.node_is_alive(node):
           self.delNode(node)
           self.chan.remove_member(node)

@@ -10,7 +10,10 @@ from file_handler import *
 
 from fastapi.middleware.cors import CORSMiddleware
 
-import threading, time
+import threading, time, os
+
+# Logs
+from logs.logs_format import *
 
 # Api Servers
 servers = ['localhost']
@@ -26,7 +29,11 @@ first_server_address_port = 10000
 stopped = False
 
 server = 'localhost'
-port = 10001
+# port = 10002
+
+port = int(os.environ.get('PORT'))
+
+print(port)
 
 TIMEOUT = 20
 
@@ -128,8 +135,6 @@ class FilesModel(AddressModel):
 @app.get("/")
 def index():
     
-    import os
-
     my_variable = os.environ.get('CLUSTERS')
 
     if my_variable is not None:
@@ -329,7 +334,7 @@ def chord_replication_routine():
             if node.is_leader:
                 node.check_live_nodes()
 
-            print(node)
+            print_info(node)
 
             # Reccess
             print(f"On Thread...Sleeping for {TIMEOUT} seconds")
