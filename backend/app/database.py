@@ -1,6 +1,6 @@
 import sqlite3
 from sqlite3 import Error
-from parser_cran import get_data_from
+# from parser_cran import get_data_from
 import re
 
 class Text:

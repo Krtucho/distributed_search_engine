@@ -31,6 +31,9 @@ from servers import *
 # Variable para decir si es esta corriendo en local o en docker
 local = True
 
+# Docker
+gateway = "172.21.0.1"
+
 # Api Servers
 servers:List[Address] = get_servers(local)
 

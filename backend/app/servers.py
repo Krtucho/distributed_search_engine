@@ -48,6 +48,7 @@ def create_servers_file_port(ip, port_start, port_end):
             file.write(server + '\n')
 
 def get_servers(local):
+    servers = []
     if local:
         if os.path.exists('servers.txt'):
             servers = create_addresses(load_servers())
@@ -61,3 +62,5 @@ def get_servers(local):
         else:
             create_servers_file('172.21.0.1', '172.21.0.20', 8000)
             servers = create_addresses(load_servers())
+
+    return servers

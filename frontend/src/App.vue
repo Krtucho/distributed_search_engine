@@ -12,7 +12,7 @@ import VuePaginate from 'vue-paginate'
 
 // Vue.config.productionTip = false
 
-import process from 'process/browser';
+//import process from 'process/browser';
 
 export default defineComponent({
   name: 'App'

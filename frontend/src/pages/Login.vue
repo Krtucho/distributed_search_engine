@@ -192,7 +192,7 @@ import { defineComponent } from 'vue';
 import { ref } from 'vue'
 
 // import { env } from 'process'
-import process from 'process/browser';
+// import process from 'process/browser';
 
 // import VuePaginate from "vue-paginate";
 // Vue.component("paginate", VuePaginate);
@@ -405,6 +405,8 @@ export default defineComponent({
       // }
 
       console.log("Checking env variable")
+      console.log(process)
+      console.log(process.env)
       console.log(process.env.MY_VARIABLE)
       axios.get(url, request={}, config ).then((res) => {
         this.gamesList = res.data;
