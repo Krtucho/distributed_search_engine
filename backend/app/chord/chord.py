@@ -83,16 +83,19 @@ class ChordNode:
     # print("server", server)
     data = {"server_ip":node_address.ip, "server_port":node_address.port, "content":"JOIN"}#'{"server"'+f':server, "content":"JOIN"'+'}'
     # print("data", data)
-    r = requests.post(f"http://{self.leader.ip}:{self.leader.port}/chord/channel/join", json=data)
-    
-    # print(r)
-    # print(r.text)
-    if r.ok:
-      # r_json = r.json()
-      # node_id = r_json["no"]
-      # print("r_text", r.text)
-      return str(r.text)
-    return None
+    r = None
+    try:
+      r = requests.post(f"http://{self.leader.ip}:{self.leader.port}/chord/channel/join", json=data)
+      
+      # print(r)
+      # print(r.text)
+      if r.ok:
+        # r_json = r.json()
+        # node_id = r_json["no"]
+        # print("r_text", r.text)
+        return str(r.text)
+    except:
+      return None
   
   def get_files(self):
     print(self.data[self.nodeID])
@@ -215,17 +218,22 @@ class ChordNode:
     
 #-
   def ask_leader_for_channel(self):
-    print(self.leader)
-    r = requests.get(f"http://{self.leader.ip}:{self.leader.port}/chord/channel/info/")
-    print(r)
-    print(r.text)
-    # print(r.content)
-    # if r.ok:
-    #   print(r)
-    #   print(r.text)
-    #   print(r.json())
-    
-    return r.json()
+    # print(self.leader)
+    r = None
+    try:
+      r = requests.get(f"http://{self.leader.ip}:{self.leader.port}/chord/channel/info/")
+      # print(r)
+      # print(r.text)
+      # print(r.content)
+      # if r.ok:
+      #   print(r)
+      #   print(r.text)
+      #   print(r.json())
+      
+      return r.json()
+    except Exception as e:
+      print(e)
+      return None
 
   def ask_members_to_leader(self):
     # leader_address = self.chan[self.leader]

@@ -23,35 +23,56 @@ import database
 #############
 
 
-import threading, time, os
-
 # Logs
 from logs.logs_format import *
 
+from servers import *
+
+# Variable para decir si es esta corriendo en local o en docker
+local = True
+
 # Api Servers
-servers = ['localhost']
+servers:List[Address] = get_servers(local)
+
+# servers = ['localhost']
 
 # Clusters of n servers. Update when a new server joins
 clusters = ['localhost']
 
 # Chord
-first_server_address_ip = 'localhost' # Correrlo local
-first_server_address_port = 10000  # Correrlo local
+first_server_address_ip = servers[0].ip if len(servers) > 0 else 'localhost' # Correrlo local
+first_server_address_port = 8000  # Correrlo local
+
+if local:
+    first_server_address_ip = 'localhost' # Correrlo local
+    first_server_address_port = 10000  # Correrlo local
 
 # Chord Thread
 stopped = False
 
 server = 'localhost'
-# port = 10002 # Correrlo local
+port = 10000 # Correrlo local
 
-port = int(os.environ.get('PORT')) # Correrlo con Docker
+if not local:
+    server = str(os.environ.get('IP')) # Correrlo con Docker
+    port = int(os.environ.get('PORT')) # Correrlo con Docker
 
-print(port)
-
+# print(port)
 TIMEOUT = 20
+if not local:
+    try:
+        TIMEOUT = int(os.environ.get('TIMEOUT')) # Correrlo con Docker
+    except:
+        pass
 
 # Files
 filepath = "/downloads/"
+if not local:
+    try:
+        filepath = str(os.environ.get('FILEPATH')) # Correrlo con Docker
+    except:
+        pass
+
 
 app = FastAPI()
 
