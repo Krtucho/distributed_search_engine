@@ -35,16 +35,16 @@ servers = ['localhost']
 clusters = ['localhost']
 
 # Chord
-first_server_address_ip = 'localhost'
-first_server_address_port = 10000
+first_server_address_ip = 'localhost' # Correrlo local
+first_server_address_port = 10000  # Correrlo local
 
 # Chord Thread
 stopped = False
 
 server = 'localhost'
-# port = 10002
+# port = 10002 # Correrlo local
 
-port = int(os.environ.get('PORT'))
+port = int(os.environ.get('PORT')) # Correrlo con Docker
 
 print(port)
 
