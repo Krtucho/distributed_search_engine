@@ -82,7 +82,7 @@ def search_by_text(text: str):
     ranking = [] # List with the ranking and query documents results
 
     ####### testing #########
-    r = tf
+    # r = tf
     #########################
 
     # Search text in every server
