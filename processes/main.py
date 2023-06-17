@@ -5,8 +5,10 @@ import requests # Para realizar peticiones a otros servers y descargar archivos
 from file_handler import *
 from fastapi.middleware.cors import CORSMiddleware
 from database import DataB, Text, convert_text_to_text_class
-
 import threading
+
+
+lock = threading.Lock()# Create a lock object
 
 #VARIABLES DE ENTORNO
 # Api Servers
@@ -15,10 +17,12 @@ servers = ['localhost']
 # Clusters of n servers. Update when a new server joins
 clusters = ['localhost:10002','localhost:10003']
 database = DataB()
-port = 10001 #cambiar al cambiar de server
-path_db = '/home/roxy/Roxana-linux/SD/distributed_search_engine/processes/databases/db_3.db' #cambiar al cambiar de server
+#port = 10001 #cambiar al cambiar de server
+DATABASE_DIR = '/home/roxy/Roxana-linux/SD/distributed_search_engine/processes/databases/'
+database_files = ['db1.db', 'db2.db', 'db3.db']
+ports = [10001, 10002] #MODIFICAR CAMBIAR LISTA [10001,10002,10003]
 path_txts = '/home/roxy/Roxana-linux/SD/distributed_search_engine/processes/txts'
-files_name = ['document_1.txt', 'document_2.txt', 'document_3.txt']
+files_name = ['document_1.txt', 'document_2.txt', 'document_3.txt'] #LOs 3 servidores tendran los mismos docs
 app = FastAPI()
 
 # Configuración de CORS
@@ -55,40 +59,39 @@ files = [
     }
 ]
 
-def send_notification(cluster, text: str, results):
-    print("ENTRO EN SEND NOTIFICATION")
-    print("Hilo en ejecución: {}".format(threading.current_thread().name))
-    print(cluster)
-    server = f'http://{cluster}:{port}/api/files/search/{text}'
-    print(server)
-    r = requests.get(server, verify=False)
+def send_notification(port, text: str, results):
+    with lock:
+        print("ENTRO EN SEND NOTIFICATION")
+        print("Hilo en ejecución: {}".format(threading.current_thread().name))
+        print(clusters[0])
+        server = f'http://{clusters[0]}:{port}/api/files/search/{text}'
+        print(server)
+        r = requests.get(server, verify=False)
+        print("\R:")
+        print(r)
+        print(r.content)
+        print(r.text)
+        print("R/")
+        results.extend(r)  # Add matched documents to the shared list
     
-    print("\R:")
-    print(r)
-    print(r.content)
-    print(r.text)
-    print("R/")
-    results.extend(r)  # Add matched documents to the shared list
     
 def search_by_text(text: str):
-    print(text)
     print("ENTRO EN SEARCH BY TEXT")
+    print(text)
     threading_list = []
     ranking = [] # List with the ranking and query documents results
     results = []  # Shared list to store the matched document names
     # Construir ranking a partir de cada listado de archivos recibidos gracias al tf_idf
     # Search text in every server
-    print("cantidad de clusters = ", len(clusters))
     # TODO: Paralelizar peticiones a todos los servidores para pedirles sus rankings. https://docs.python.org/es/3/library/multiprocessing.html
-    for i, cluster in enumerate(clusters): # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
-        t = threading.Thread(target=send_notification, args=(cluster, text, results), name="Hilo {}".format(i))
+    for i, port in enumerate(ports): # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
+        t = threading.Thread(target=send_notification, args=(port, text, results), name="Hilo {}".format(i))
         threading_list.append(t)
-
-    print("T.START")
-    for t in threading_list:
+        print("T.START")
         t.start()
-    print("T.JOIN")
+        
     for t in threading_list:
+        print("T.JOIN")
         t.join()
     
     print(results) 
@@ -101,10 +104,11 @@ def search_by_text(text: str):
     return decorate_data(results)
 
 def decorate_data(results):
+    print("ENTRO A DECORATE DATA")
     final_string = {}
     for i, elem in enumerate(results):
-        key = f"data_{i}"
-        final_string[key] = {"name": elem, "url": "https://localhost:3000"}
+        key = f'data_{i}'
+        final_string[key] = {'name': elem, 'url': 'https://localhost:3000'}
     return final_string
 
 def tf_idf(textt: str):
@@ -112,20 +116,21 @@ def tf_idf(textt: str):
 
 def match_by_name(text:str, datab):
     print("ENTRO EN MATCH BY NAME")
-    print("Hilo en ejecución: {}".format(threading.current_thread().name))
-    select_files_title = f"SELECT Title FROM File WHERE File.Title = '{text}'"
-    select_files_author = f"SELECT Authot FROM File WHERE File.Author = '{text}'"
-    result_1 = datab.execute_read_query(select_files_title)
-    result_2 = datab.execute_read_query(select_files_title)
-    print("RESULTADO TITLE",result_1)
+    print("Hilo en ejecución: {}".format(threading.current_thread().native_id))
+    #select_files_title = f"SELECT Title FROM File WHERE File.Title = '{text}'"
+    select_files_author = f"SELECT Author FROM File WHERE File.Author = '{text}'"
+    #result_1 = datab.execute_read_query(select_files_title)
+    result_2 = datab.execute_read_query(select_files_author)
+    #print("RESULTADO TITLE",result_1)
     print("RESULTADO AUTHOR",result_2)
-    return result_1,result_2 
+    return result_2 #,result_1
 
 #Este metodo carga la base de datos del server al ser levantado este
 def init_servers(datab): # De los servers yo se su IP
     print("INIT SERVERS")
     text_list = convert_text_to_text_class(path_txts,files_name)
-    datab.create_connection(path_db)
+    #A cada servidor le toca un archivo.db que se asigna en dependencia de su puerto
+    datab.create_connection(DATABASE_DIR+database_files[2]) #MODIFICAR CAMBIAR ITERACION
     for file in text_list:
         datab.insert_file(file)
     print("SALIO DEL INIT")
@@ -138,6 +143,10 @@ class File(BaseModel):
     # paginas:int
     # editorial: Optional[str]
 
+# Obtener el número de puerto
+@app.on_event("startup")
+async def startup_event():
+    print(f"La aplicación se está ejecutando...")
 
 @app.get("/")
 def index():
@@ -165,7 +174,6 @@ def index():
 @app.get('/files/search/{text}')
 def show_file(text: str):
     print("ENTRO EN SHOW FILE")
-    
     return search_by_text(text)#{"data": id}
 
 # Server
@@ -173,21 +181,16 @@ def show_file(text: str):
 @app.get('/api/files/search/{text}')
 def search_file_in_db(text: str):
     print("ENTRO A SEARCH FILE IN DB")
-    print("PORT (el port 2 es el server 1 (y al reves)) = ",port)
     print("Hilo en ejecución: {}".format(threading.current_thread().name))
-    # Crea una nueva conexión en cada hilo
-    print("CREAR NUEVA DATAB")
-    datab = DataB()
-    init_servers(datab)
-    matched_documents = match_by_name(text, datab)
-    # Cierra la conexión después de usarla
-    datab.close_connection()
+    #datab = DataB() #crear una nueva database en cada hilo
+    #init_servers(datab)
+    matched_documents = match_by_name(text, database)
 
     if matched_documents == None:
         #Calcularel tf_idf
         return tf_idf(text)#{"data": id}
     else:
-        return decorate_data(matched_documents)
+        return matched_documents
    
 @app.post("/files")
 def add_file(file: File):
@@ -228,7 +231,7 @@ def download_file(url: str):
 
 # Server #asi es la forma del endpoint para descargar
 @router.get("/api/download/{name_file}")
-def download_file(name_file: str):
+def download_file_from_server(name_file: str):
     return FileResponse(getcwd() + "/" + name_file, media_type="application/octet-stream", filename=name_file)
 
 @router.delete("/delete/{name_file}")
