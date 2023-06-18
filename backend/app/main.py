@@ -4,8 +4,9 @@ from typing import Optional
 import requests # Para realizar peticiones a otros servers y descargar archivos
 from file_handler import *
 from fastapi.middleware.cors import CORSMiddleware
-#from processes.database import DataB 
 import threading
+from database import DataB, Text, convert_text_to_text_class
+import os
 
 #VARIABLES DE ENTORNO
 # Api Servers
@@ -14,10 +15,20 @@ servers = ['localhost']
 # Clusters of n servers. Update when a new server joins
 clusters = ['localhost']
 
-port = 10002
+#port = 10002
 #path_db = './db_1.db'
 
 app = FastAPI()
+
+#ROXANA
+current_dir = os.path.dirname(os.path.abspath(__file__))
+lock = threading.Lock() 
+ports = [10001, 10002] #MODIFICAR CAMBIAR LISTA [10001,10002,10003]
+path_txts = os.path.join(current_dir, "txts")
+files_name = ['document_1.txt', 'document_2.txt', 'document_3.txt'] #LOs 3 servidores tendran los mismos docs
+DATABASE_DIR = os.path.join(current_dir, "databases")
+database_files = ['db1.db', 'db2.db', 'db3.db']
+database = DataB()
 
 # Configuración de CORS
 origins = [
@@ -58,47 +69,82 @@ files = [
 #     return [file["file"] for file in files if file["id"] == id]
 
 
-def send_notification(cluster, text: str):
-    print(cluster)
-    server = f'http://{cluster}:{port}/'
-    print(server)
-    r = requests.get(server, verify=False)
-
-
-    # print(r)
-    # print(r.content)
-    # print(r.text)
-
-def search_by_text(text: str):
+def send_notification(port, text: str, results): #ROXANA
+    with lock:
+        print("ENTRO EN SEND NOTIFICATION")
+        print("Hilo en ejecución: {}".format(threading.current_thread().name))
+        print(clusters[0])
+        server = f'http://{clusters[0]}:{port}/api/files/search/{text}'
+        print(server)
+        r = requests.get(server, verify=False)
+        print("\R:")
+        print(r)
+        print(r.content)
+        print(r.text)
+        print("R/")
+        results.extend(r)  # Add matched documents to the shared list
+    
+    
+def search_by_text(text: str): #ROXANA
+    print("ENTRO EN SEARCH BY TEXT")
     print(text)
+    threading_list = []
     ranking = [] # List with the ranking and query documents results
+    results = []  # Shared list to store the matched document names
+    # Construir ranking a partir de cada listado de archivos recibidos gracias al tf_idf
     # Search text in every server
     # TODO: Paralelizar peticiones a todos los servidores para pedirles sus rankings. https://docs.python.org/es/3/library/multiprocessing.html
-    for cluster in clusters: # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
-        ranking.append(send_notification(cluster, text))
-
-    # Make Ranking
+    for i, port in enumerate(ports): # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
+        t = threading.Thread(target=send_notification, args=(port, text, results), name="Hilo {}".format(i))
+        threading_list.append(t)
+        print("T.START")
+        t.start()
+        
+    for t in threading_list:
+        print("T.JOIN")
+        t.join()
+    
+    print(results) 
+    # Make Ranking 
     # Luego de esperar cierta cantidad de segundos por los rankings pasamos a hacer un ranking general de todo lo q nos llego
     # TODO: Si alguna pc se demora mucho en devolver el ranking, pasamos a preguntarle a algun intregrante de su cluster que es lo que sucede
 
     # Return Response
     # Retornamos el ranking general de todos los rankings combinados
+    return decorate_data(results)
 
+def decorate_data(results): #ROXANA
+    print("ENTRO A DECORATE DATA")
+    final_string = {}
+    for i, elem in enumerate(results):
+        key = f'data_{i}'
+        final_string[key] = {'name': elem, 'url': 'https://localhost:3000'}
+    return final_string
+
+def match_by_name(text:str, datab): #ROXANA
+    print("ENTRO EN MATCH BY NAME")
+    print("Hilo en ejecución: {}".format(threading.current_thread().native_id))
+    #select_files_title = f"SELECT Title FROM File WHERE File.Title = '{text}'"
+    select_files_author = f"SELECT Author FROM File WHERE File.Author = '{text}'"
+    #result_1 = datab.execute_read_query(select_files_title)
+    result_2 = datab.execute_read_query(select_files_author)
+    #print("RESULTADO TITLE",result_1)
+    print("RESULTADO AUTHOR",result_2)
+    return result_2 #,result_1
+
+#ROXANA
+#Este metodo carga la base de datos del server al ser levantado este
+def init_servers(datab): # De los servers yo se su IP
+    print("INIT SERVERS")
+    text_list = convert_text_to_text_class(path_txts,files_name)
+    #A cada servidor le toca un archivo.db que se asigna en dependencia de su puerto
+    datab.create_connection(DATABASE_DIR+database_files[2]) #MODIFICAR CAMBIAR ITERACION
+    for file in text_list:
+        datab.insert_file(file)
+    print("SALIO DEL INIT")
 
 def tf_idf(textt: str):
     pass # Paula
-
-#def match_by_name(datab,text:str):
-#    select_files = f"SELECT name FROM File WHERE File.name = '{text}'"
-#    result = datab.execute_read_query(select_files)
-#    return result
-
-#def init_servers(): # De los servers yo se su IP
-#    print("INIT SERVERS")
-#    datab = DataB()
-#    datab.create_connection(path_db)
-#    datab.insert_file("Hakuna Matata")
-#    datab.insert_file("El viejo y el mar")
 
 class File(BaseModel):
     file_name: str
@@ -107,6 +153,10 @@ class File(BaseModel):
     # paginas:int
     # editorial: Optional[str]
 
+
+@app.on_event("startup") #ROXANA
+async def startup_event():
+    print(f"La aplicación se está ejecutando...")
 
 @app.get("/")
 def index():
@@ -131,26 +181,26 @@ def index():
 #     return search_file(id)#{"data": id}
 
 # Cliente
-@app.get('/files/search/{text}')
+@app.get('/files/search/{text}') #ROXANA
 def show_file(text: str):
+    print("ENTRO EN SHOW FILE")
     return search_by_text(text)#{"data": id}
 
 # Server
 # Este es el que llama al TF-IDF
-@app.get('/api/files/search/{text}')
-def search_file_in_db(text: str):
-    threading_list = []
-    # Construir ranking a partir de cada listado de archivos recibidos gracias al tf_idf
-    #for i, cluster in enumerate(clusters):
-    #    t = threading.Thread(target=match_by_name,args=(text,), name=f't{i}')
-    #    threading_list.append(t)
-    #    #matched = match_by_name(text)
-    #for t in threading_list:
-    #    t.start()
-    #for t in threading_list:
-    #    t.join()
+@app.get('/api/files/search/{text}') 
+def search_file_in_db(text: str): #ROXANA
+    print("ENTRO A SEARCH FILE IN DB")
+    print("Hilo en ejecución: {}".format(threading.current_thread().name))
+    #datab = DataB() #crear una nueva database en cada hilo
+    #init_servers(datab)
+    matched_documents = match_by_name(text, database)
+    if matched_documents == None:
+        #Calcularel tf_idf
+        return tf_idf(text)#{"data": id}
+    else:
+        return matched_documents
 
-    return tf_idf(text)#{"data": id}
 
 @app.post("/files")
 def add_file(file: File):
@@ -219,3 +269,5 @@ def delete_file(folder_name: str = Form(...)):
     }, status_code=200)
 
 app.include_router(router)
+print("EMPEZAMOS")
+init_servers(database)
