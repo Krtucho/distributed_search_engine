@@ -4,3 +4,5 @@ uvicorn>=0.15.0,<0.16.0
 requests
 python-multipart
 nltk
+re
+sqlite3

@@ -9,7 +9,7 @@ from file_handler import *
 
 
 from fastapi.middleware.cors import CORSMiddleware
-from database import DataB, Text, convert_text_to_text_class
+from database import DataB, convert_text_to_text_class
 import threading, time, os
 
 # Logs
