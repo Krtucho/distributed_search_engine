@@ -6,10 +6,11 @@ from file_handler import *
 from fastapi.middleware.cors import CORSMiddleware
 from database import DataB, Text, convert_text_to_text_class
 import threading
+import os
+import shutil
 
 
 lock = threading.Lock()# Create a lock object
-
 #VARIABLES DE ENTORNO
 # Api Servers
 servers = ['localhost']
@@ -19,8 +20,10 @@ clusters = ['localhost']
 database = DataB()
 #port = 10001 #cambiar al cambiar de server
 DATABASE_DIR = '/home/roxy/Roxana-linux/SD/distributed_search_engine/processes/databases/'
+DOWNLOAD_DIR = os.path.join(os.getcwd() + "/", "downloads")
+
 database_files = ['db1.db', 'db2.db', 'db3.db']
-ports = [10001, 10002] #MODIFICAR CAMBIAR LISTA [10001,10002,10003]
+ports = [10002] #MODIFICAR CAMBIAR LISTA [10001,10002,10003]
 path_txts = '/home/roxy/Roxana-linux/SD/distributed_search_engine/processes/txts'
 files_name = ['document_1.txt', 'document_2.txt', 'document_3.txt'] #LOs 3 servidores tendran los mismos docs
 app = FastAPI()
@@ -130,7 +133,7 @@ def init_servers(datab): # De los servers yo se su IP
     print("INIT SERVERS")
     text_list = convert_text_to_text_class(path_txts,files_name)
     #A cada servidor le toca un archivo.db que se asigna en dependencia de su puerto
-    datab.create_connection(DATABASE_DIR+database_files[2]) #MODIFICAR CAMBIAR ITERACION
+    datab.create_connection(DATABASE_DIR+database_files[0]) #MODIFICAR CAMBIAR ITERACION
     for file in text_list:
         datab.insert_file(file)
     print("SALIO DEL INIT")
@@ -208,7 +211,7 @@ router = APIRouter()
 
 @router.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
-    with open(getcwd() + "/" + file.filename, "wb") as myfile:
+    with open(os.getcwd() + "/" + file.filename, "wb") as myfile:
         content = await file.read()
         myfile.write(content)
         myfile.close()
@@ -217,27 +220,28 @@ async def upload_file(file: UploadFile = File(...)):
 
 @router.get("/file/{name_file}")
 def get_file(name_file: str):
-    return FileResponse(getcwd() + "/" + name_file)
+    return FileResponse(os.getcwd() + "/" + name_file)
 
 # Cliente
 # Metodo para que el cliente le pida un archivo a traves de una url al servidor con el que se esta comunicando
-@router.get("/download/{url}")
-def download_file(url: str):
+@router.get("/download/{filename}")
+def download_file(filename: str):
     # Se le pide al servidor que se encuentra en url el archivo
-    # server = f'{cluster}'
-    # print(server)
-    file = download_file(url=url)#requests.get(url, verify=False
-    return FileResponse(getcwd() + "/" + file, media_type="application/octet-stream", filename=file)
+    #file = download_file(url=url)#requests.get(url, verify=False
+    actual_path = os.getcwd() + "/txts/" + filename + ".txt"
+    response = FileResponse(actual_path, media_type="application/octet-stream", filename=filename)
+    shutil.copy(actual_path, os.path.join(DOWNLOAD_DIR, filename))
+    return response
 
 # Server
 @router.get("/api/download/{name_file}")
 def download_file_from_server(name_file: str):
-    return FileResponse(getcwd() + "/" + name_file, media_type="application/octet-stream", filename=name_file)
+    return FileResponse(os.getcwd() + "/" + name_file, media_type="application/octet-stream", filename=name_file)
 
 @router.delete("/delete/{name_file}")
 def delete_file(name_file: str):
     try:
-        remove(getcwd() + "/" + name_file)
+        remove(os.getcwd() + "/" + name_file)
         return JSONResponse(content={
             "removed": True
         }, status_code=200)
@@ -249,7 +253,7 @@ def delete_file(name_file: str):
 
 @router.delete("/folder")
 def delete_file(folder_name: str = Form(...)):
-    rmtree(getcwd() + folder_name)
+    rmtree(os.getcwd() + folder_name)
     return JSONResponse(content={
         "removed": True
     }, status_code=200)
