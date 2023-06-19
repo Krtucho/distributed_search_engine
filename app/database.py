@@ -2,6 +2,7 @@ import sqlite3
 from sqlite3 import Error
 from parser_cran import get_data_from
 import re
+import os
 
 class Text:
     def __init__(self, id, title, author, body):
@@ -9,10 +10,13 @@ class Text:
         self.title = title
         self.author = author
         self.body = body
+    
+    def __str__(self) -> str:
+        return f"id:{self.id} title:{self.title} author:{self.author}"
 
 class DataB:
     def __init__(self):
-        self.connection = None #create_connection("./processes/sm_app.sqlite")
+        self.connection = None
         self.cursor = None
         self.datab = ""
         
@@ -24,7 +28,22 @@ class DataB:
         (?, ?, ?);
         """
         self.execute_query(create_users, text_file)
-        
+    
+    def get_documents(self):
+        docs = []
+        query = "SELECT * FROM File;"
+        result = self.execute_read_query(query)
+        if result:
+            for row in result:
+                id = row[0]
+                title = row[1]
+                author = row[2]
+                body = row[3]
+                document = Text(id, title, author, body)
+                docs.append(document)
+        return docs
+
+
     def close_connection(self):
         print("ENtro en CLose Connection")
         self.cursor.close()
@@ -43,8 +62,6 @@ class DataB:
         print("ENTRO EN CREATE CONNECTION")
         try:
             self.datab = path
-            #self.connection = sqlite3.connect(path)
-            #self.open_connection()
             create_files_table = '''
                 CREATE TABLE IF NOT EXISTS File (
                     ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,14 +77,11 @@ class DataB:
             print("PATH = ", path)
             print(f"The error '{e}' ocurred")
             
-        #self.close_connection()
-            
     def execute_read_query(self, query):
         print("ENTRO EN EXECUTE READ QUERY")
         self.open_connection()
         print("SELF connection ", self.connection)
         print("QUERY ", query)
-        #cursor = self.connection.cursor()
         result = None
         try:
             self.cursor.execute(query)
@@ -76,13 +90,11 @@ class DataB:
         except Error as e:
             print("ERROR EN EXECUTE READ QUERY")
             print(f"The error '{e}' occurred")
-        #cursor.close()
         self.close_connection()
 
     def execute_query(self, query, text_file):
         self.open_connection()
         print("ENtrO EN EXECUTE QUERY")
-        #cursor = self.connection.cursor()
         try:
             if text_file != "":
                 self.cursor.execute(query, (text_file.title, text_file.author, text_file.body))
@@ -93,7 +105,6 @@ class DataB:
         except Error as e:
             print("ERROR EN EXECUTE QUERY")
             print(f"The error '{e}' ocurred")
-        #self.cursor.close()
         self.close_connection()
 
 #Este metodo se llama inicialmente al levantar los servidores y asignar a cada uno su BD.
@@ -110,11 +121,9 @@ def convert_text_to_text_class(path, files_name: list):
         body = re.search(r'Body:\n(.+)', data, re.DOTALL)
         if id and title and author and body:
             id_text = id.group(1).strip()
-            #title_text = title.group(1).strip()
             title_ = title.group(1)
             title_text = title_.replace('\n', ' ')
             author_text = author.group(1).strip()
-            #body_text = body.group(1).strip()
             body_ = body.group(1)
             body_text = body_.replace('\n', ' ')
             text = Text(id_text, title_text, author_text, body_text)
@@ -122,8 +131,11 @@ def convert_text_to_text_class(path, files_name: list):
     return text_list
 
 #if __name__ == '__main__':
-#    path = './processes/databases/db3.db'
-#    path_txts = '/home/roxy/Roxana-linux/SD/distributed_search_engine/processes/txts'
+#       #PARA PROBAR LOS METODOS
+#    current_dir = os.path.dirname(os.path.abspath(__file__))
+#    path =  os.path.join(current_dir, "databases/db4.db")
+#    path_txts =  os.path.join(current_dir, "txts")
+#    
 #    files_name = ['document_1.txt', 'document_2.txt', 'document_3.txt']
 #    text_list = convert_text_to_text_class(path_txts, files_name)
 #    datab = DataB()
@@ -131,6 +143,9 @@ def convert_text_to_text_class(path, files_name: list):
 #    for text in text_list:
 #        datab.insert_file(text)
 #    
+#    textlist = datab.get_documents()
+#    for t in textlist:
+#        print(t)
 #    query = text_list[2].author
 #    select_files = f"SELECT Author FROM File WHERE File.Author = '{query}'"
 #    a = f"SELECT Author FROM File "

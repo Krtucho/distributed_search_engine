@@ -1,20 +1,113 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 
 import requests # Para realizar peticiones a otros servers y descargar archivos
 
 from file_handler import *
+# from app.file_handler import *
+
+
+from fastapi.middleware.cors import CORSMiddleware
+from database import DataB, convert_text_to_text_class
+import threading, time, os
+
+# Logs
+from logs.logs_format import *
+
+#### SRI ####
+from vector_model import VectorModel
+from pathlib import Path
+import database
+# import os
+#############
+
+
+# Logs
+from logs.logs_format import *
+
+from servers import *
+
+# Variable para decir si es esta corriendo en local o en docker
+local = True
+
+# Docker
+gateway = "172.21.0.1"
 
 # Api Servers
-servers = ['localhost']
+servers:List[Address] = get_servers(local)
+
+# servers = ['localhost']
 
 # Clusters of n servers. Update when a new server joins
 clusters = ['localhost']
 
-port = 8000
+# Chord
+first_server_address_ip = servers[0].ip if len(servers) > 0 else 'localhost' # Correrlo local
+first_server_address_port = 8000  # Correrlo local
+
+if local:
+    first_server_address_ip = 'localhost' # Correrlo local
+    first_server_address_port = 10000  # Correrlo local
+
+# Chord Thread
+stopped = False
+
+server = 'localhost'
+port = 10000 # Correrlo local
+
+if not local:
+    server = str(os.environ.get('IP')) # Correrlo con Docker
+    port = int(os.environ.get('PORT')) # Correrlo con Docker
+
+# print(port)
+TIMEOUT = 20
+if not local:
+    try:
+        TIMEOUT = int(os.environ.get('TIMEOUT')) # Correrlo con Docker
+    except:
+        pass
+
+# Files
+filepath = "/downloads/"
+if not local:
+    try:
+        filepath = str(os.environ.get('FILEPATH')) # Correrlo con Docker
+    except:
+        pass
+
 
 app = FastAPI()
+
+#ROXANA
+current_dir = os.path.dirname(os.path.abspath(__file__))
+lock = threading.Lock() 
+ports = [10001, 10002] #MODIFICAR CAMBIAR LISTA [10001,10002,10003]
+path_txts = os.path.join(current_dir, "txts")
+files_name = ['document_1.txt', 'document_2.txt', 'document_3.txt'] #LOs 3 servidores tendran los mismos docs
+DATABASE_DIR = os.path.join(current_dir, "databases")
+database_files = ['db1.db', 'db2.db', 'db3.db']
+database = DataB()
+server_ip = '0.0.0.0' #NECESITO SABER EL IP DE CADA SERVIDOR Y TENERLO EN UNA VARIABLE
+number_servers = 10 # NECESITO SABER EL TOTAL DE SERVIDORES DE LA RED
+
+# Configuración de CORS
+origins = [
+    "http://localhost",
+    "http://localhost:8080",
+    "http://172.17.0.3",
+    "http://172.17.0.3:8080",
+    "http://172.17.0.1",
+    "http://172.17.0.1:8080"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 files = [
@@ -37,35 +130,107 @@ files = [
 #     return [file["file"] for file in files if file["id"] == id]
 
 
-def send_notification(cluster, text: str):
-    print(cluster)
-    server = f'http://{cluster}:{port}/'
-    print(server)
-    r = requests.get(server, verify=False)
-
-
-    # print(r)
-    # print(r.content)
-    # print(r.text)
-
-def search_by_text(text: str):
+def send_notification(port, text: str, results): #ROXANA
+    with lock:
+        print("ENTRO EN SEND NOTIFICATION")
+        print("Hilo en ejecución: {}".format(threading.current_thread().name))
+        print(clusters[0])
+        server = f'http://{clusters[0]}:{port}/api/files/search/{text}'
+        print(server)
+        r = requests.get(server, verify=False)
+        print("\R:")
+        print(r)
+        print(r.content)
+        print(r.text)
+        print("R/")
+        results.extend(r)  # Add matched documents to the shared list
+    
+    
+def search_by_text(text: str): #ROXANA
+    print("ENTRO EN SEARCH BY TEXT")
     print(text)
+    threading_list = []
     ranking = [] # List with the ranking and query documents results
+    results = []  # Shared list to store the matched document names
+    # Construir ranking a partir de cada listado de archivos recibidos gracias al tf_idf
     # Search text in every server
-    # TODO: Parallizar peticiones a todos los servidores para pedirles sus rankings. https://docs.python.org/es/3/library/multiprocessing.html
-    for cluster in clusters: # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
-        ranking.append(send_notification(cluster, text))
-
-    # Make Ranking
+    # TODO: Paralelizar peticiones a todos los servidores para pedirles sus rankings. https://docs.python.org/es/3/library/multiprocessing.html
+    for i, port in enumerate(ports): # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
+        t = threading.Thread(target=send_notification, args=(port, text, results), name="Hilo {}".format(i))
+        threading_list.append(t)
+        print("T.START")
+        t.start()
+        
+    for t in threading_list:
+        print("T.JOIN")
+        t.join()
+    
+    print(results) 
+    # Make Ranking 
     # Luego de esperar cierta cantidad de segundos por los rankings pasamos a hacer un ranking general de todo lo q nos llego
     # TODO: Si alguna pc se demora mucho en devolver el ranking, pasamos a preguntarle a algun intregrante de su cluster que es lo que sucede
 
     # Return Response
     # Retornamos el ranking general de todos los rankings combinados
+    return decorate_data(results)
+
+def decorate_data(results): #ROXANA
+    print("ENTRO A DECORATE DATA")
+    final_string = {}
+    for i, elem in enumerate(results):
+        key = f'data_{i}'
+        final_string[key] = {'name': elem, 'url': 'https://localhost:3000'}
+    return final_string
+
+def match_by_name(text:str, datab): #ROXANA
+    print("ENTRO EN MATCH BY NAME")
+    print("Hilo en ejecución: {}".format(threading.current_thread().native_id))
+    #select_files_title = f"SELECT Title FROM File WHERE File.Title = '{text}'"
+    select_files_author = f"SELECT Author FROM File WHERE File.Author = '{text}'"
+    #result_1 = datab.execute_read_query(select_files_title)
+    result_2 = datab.execute_read_query(select_files_author)
+    #print("RESULTADO TITLE",result_1)
+    print("RESULTADO AUTHOR",result_2)
+    return result_2 #,result_1
 
 
+# Este metodo carga la base de datos del server al ser levantado este
+# Asumo que conozco los IPs de cada servidor y la cantidad de servidores 
+def init_servers(datab): #ROXANA
+    print("INIT SERVERS")
+    text_list = convert_text_to_text_class(path_txts,files_name)
+    #A cada servidor le toca un archivo.db que se asigna en dependencia de su puerto
+    datab.create_connection(DATABASE_DIR+database_files[2]) #MODIFICAR CAMBIAR ITERACION
+    for file in text_list:
+        datab.insert_file(file)
+
+    # node.run() #CARLOS
+    print("Node Run")
+    # t1 = threading.Thread(target=node.run)
+    t2 = threading.Thread(target=chord_replication_routine)
+
+    # t1.start()
+    t2.start()
+
+    print("SALIO DEL INIT")
+
+######## SRI ########
+vm = VectorModel()
+path = Path("txts") # play
+files_name=["document_1.txt","document_2.txt","document_102.txt","document_56.txt","document_387.txt"]
+
+documents_list = database.convert_text_to_text_class(path=path, files_name=files_name)
+
+vm.doc_terms_data(documents_list)
 def tf_idf(textt: str):
-    pass # Paula
+    l = vm.run(textt)
+    print(l)
+    print("hola mundo")
+    print(textt)
+    return l
+    # pass # Paula
+
+#####################
 
 class File(BaseModel):
     file_name: str
@@ -74,10 +239,38 @@ class File(BaseModel):
     # paginas:int
     # editorial: Optional[str]
 
+class Message(BaseModel):
+    server_ip: str
+    server_port: int
+    content: str
+
+class AddressModel(BaseModel):
+    node_id:int
+    ip:str
+    port:int
+
+class FilesModel(AddressModel):
+    files:List[str] = []
+
+
+@app.on_event("startup") #ROXANA
+async def startup_event():
+    print(f"La aplicación se está ejecutando...")
 
 @app.get("/")
 def index():
-    return {"msg": "Hello World!"}
+    
+    my_variable = os.environ.get('CLUSTERS')
+
+    if my_variable is not None:
+        print(f"El valor de la variable de entorno MY_VARIABLE es {my_variable}")
+    else:
+        print("La variable de entorno MY_VARIABLE no está definida.")
+    return {
+        "data":[
+            {"name": "Hello World!", "url":"https://localhost:3000"}
+        ]
+    }
 
 # Cliente
 # @app.get('/files/{id}')
@@ -85,21 +278,206 @@ def index():
 #     return search_file(id)#{"data": id}
 
 # Cliente
-@app.get('/files/search/{text}')
+@app.get('/files/search/{text}') #ROXANA
 def show_file(text: str):
+    print("ENTRO EN SHOW FILE")
     return search_by_text(text)#{"data": id}
 
 # Server
 # Este es el que llama al TF-IDF
-@app.get('/api/files/search/{text}')
-def search_file_in_db(text: str):
-    # Construir ranking a partir de cada listado de archivos recibidos gracias al tf_idf
-    return tf_idf(text)#{"data": id}
+@app.get('/api/files/search/{text}') 
+def search_file_in_db(text: str): #ROXANA
+    print("ENTRO A SEARCH FILE IN DB")
+    print("Hilo en ejecución: {}".format(threading.current_thread().name))
+    #datab = DataB() #crear una nueva database en cada hilo
+    #init_servers(datab)
+    matched_documents = match_by_name(text, database)
+    if matched_documents == None:
+        #Calcularel tf_idf
+        return tf_idf(text)#{"data": id}
+    else:
+        return matched_documents
+
 
 @app.post("/files")
 def add_file(file: File):
     return {"msg": f"File {file.file_name} a"}
 
+# Chord
+# Chord Variables
+from chord.chord import *
+from chord.channel import *
+
+channel: Channel = None
+node = ChordNode(channel, Address(first_server_address_ip, 
+                                  first_server_address_port), 
+                            Address(server, port))
+channel = node.chan
+# Chord endpoints
+@app.post('/chord/receive/{text}')
+def receive_notification(text: str):
+    print(text)
+
+     # Finger Table Routine
+         # Create Thread for this process
+        # Or create an endpoint
+        # while True: #-
+
+    # TODO: change this line for request from fastapi endpoint
+    # Done! message = node.chan.recvFromAny() # Wait for any request #-
+    # TODO: change this line for request from fastapi endpoint
+
+    # sender  = message[0]              # Identify the sender #-
+    # request = message[1]              # And the actual request #-
+    # if request[0] != LEAVE: #and self.chan.channel.sismember('node',str(sender)): #-
+    #     node.addNode(sender) #-
+    # if request[0] == STOP: #-
+    #     break #-
+    # if request[0] == LOOKUP_REQ:                       # A lookup request #-
+    #     nextID = node.localSuccNode(request[1])          # look up next node #-
+    #     server = node.chan.sendTo([sender], (LOOKUP_REP, nextID)) # return to sender #-
+    #     # node.make_request(server)
+    #     data = {"server":server, "msg":(LOOKUP_REP, nextID)}
+    #     requests.post(f"http://{server.address.ip}:{server.address.port}/")
+    #     if not nextID in node.get_members():#node.chan.exists(nextID): #-
+    #         node.delNode(nextID) #-
+    # elif request[0] == JOIN: #-
+    #     continue #-
+    # elif request[0] == LEAVE: #-
+    #     node.delNode(sender) #-
+    # node.recomputeFingerTable() #-
+    # print('FT[','%04d'%node.nodeID,']: ',['%04d' % k for k in node.FT]) #- 
+
+    return text#{"data": id}
+
+@app.post("/chord/send")
+def send_notification(message: Message):
+    return {"server":f"Server: {message.server}","msg": f"msg: {message.content}"}
+
+# Chord Channel Endpoints
+def parse_server(message:Message):
+    temp = dict(message.server)
+    print(temp)
+    return temp
+
+@app.post("/chord/channel/join")
+def send_message(message: Message):
+    print(message.server_ip, message.server_port, message.content)
+    # parse_server(message)
+    nodeID = None
+    if node.is_leader:
+        nodeID  = int(node.chan.join('node', message.server_ip, message.server_port)) # Find out who you are         #-
+        node.addNode(nodeID)
+        node.recomputeFingerTable()
+    # return {"server":f"Server: {message.server}","msg": f"msg: {message.content}"}
+    return nodeID
+@app.get('/chord/channel/info')
+def get_channel_members():
+    return {"osmembers":node.chan.osmembers, "nBits":node.chan.nBits, "MAXPROC":node.chan.MAXPROC, "address":node.chan.address }#search_by_text(text)#{"data": id}
+
+
+
+@app.get('/chord/channel/members')
+def get_channel_members():
+    return {"osmembers":node.chan.osmembers, "nBits":node.chan.nBits, "MAXPROC":node.chan.MAXPROC }#search_by_text(text)#{"data": id}
+
+# Chord Replication Endpoints
+# Si el predecesor envia un mensaje para replicarse, el sucesor guarda la informacion del mismo
+@app.get('/chord/succ/{text}')
+def get_channel(text: str):
+    return {"osmembers":channel.osmembers, "nBits":channel.nBits, "MAXPROC":channel.MAXPROC }#search_by_text(text)#{"data": id}
+
+# Confirmar que ya se replico la informacion en el siguiente nodo
+@app.post('/chord/succ/data/done')
+def post_data(files: FilesModel):
+    print("Replication Done!", files.files)
+    return node.confirm_pred_data_info(files.node_id, Address(files.ip, files.port), files.files)#node.check_pred_data(address.node_id, Address(address.ip, address.port))#return {"osmembers":channel.osmembers, "nBits":channel.nBits, "MAXPROC":channel.MAXPROC }#search_by_text(text)#{"data": id}
+
+# Verificar si ya se replico la informacion en el siguiente nodo
+@app.post('/chord/succ/data')
+def verify_data(address: AddressModel):
+    return node.check_pred_data(address.node_id, Address(address.ip, address.port))#return {"osmembers":channel.osmembers, "nBits":channel.nBits, "MAXPROC":channel.MAXPROC }#search_by_text(text)#{"data": id}
+
+
+
+def chord_replication_routine():
+    print("Started Node Replication Routine")
+    print("Timeout: ", TIMEOUT)
+    stopped = False
+    try:
+        while not stopped:
+            # Obtener el sucesor
+            next_id, next_address = node.get_succesor(), node.chan.get_member(node.get_succesor())#node.localSuccNode(node.nodeID)
+            print("Successor", next_id, next_address)
+            # Buscar si el siguiente nodo sigue activo
+            # Verificar si ya se replico la informacion al sucesor
+            # Al hacer la peticion verifico si sigue activo y ademas si ya se replico la info
+            data = {}
+            r = None
+            if (not next_id == None ) and (not next_address == None):
+                next_address = Address.extract_ip_port(next_address)
+                data = {"node_id":node.nodeID, "ip":node.node_address.ip,"port": int(node.node_address.port)}
+                try:
+                    r = requests.post(f"http://{next_address.ip}:{next_address.port}/chord/succ/data", json=data, timeout=TIMEOUT)
+                except Exception as e:
+                    print("Error trying to verify data replication")
+                    print(e)
+            # Si no se ha replicado la informacion. Copiala
+            if r:
+                print("Inside Verifying Data Replication")
+                text = bool(r.json())
+                print(text)
+                print(r.text)
+                print(r.content)
+                print(r.json())
+                if not text:
+                    #   Si no se ha replicado, replicalo!
+                    node.make_replication(next_id, next_address)
+            # Si el siguiente se cayo, vuelvela a copiar, busca primero el nodo
+            else:
+                node.update_succesors()
+                node.succ = node.get_succesor()
+                if node.succ:
+                    node.make_replication(next_id, next_address)
+
+            # Busca si el de atras ya existe:
+            if node.predecessor:
+
+                r = None
+                # Busca si se cae el de atras
+                try:
+                    r = requests.get(f"http://{node.predecessor[1].ip}:{node.predecessor[1].port}/")
+                except Exception as e:
+                    print(e)
+                # Si se cae el de atras
+                if not r or not r.ok:
+                    # Agrega al conjunto del actual el contenido que tenias del de atras que estaba replicado en ti
+                    content = node.merge()
+                    # Este nuevo contenido pasaselo a tu sucesor si es q no ha cambiado, si cambio, pasale el nuevo contenido mas
+                    # el tuyo
+                    node.make_replication(next_id, next_address, content)
+                    # TODO: FixBug TypeError: 'NoneType' object does not support item assignment
+                    node.restart_pred_data_info(node.predecessor[0])
+            # else:
+                # Si aun no se tiene predecesor, esperamos a que el venga a buscarnos
+
+            # TODO: Agregar rutina de FixFinger para que se ejecute a cada rato
+            node.recomputeFingerTable() #-
+            print("FT", node.FT)
+            # print('FT[','%04d'%node.nodeID,']: ',['%04d' % k for k in node.FT]) #- 
+            
+            if node.is_leader:
+                node.check_live_nodes()
+
+            print_info(node)
+
+            # Reccess
+            print(f"On Thread...Sleeping for {TIMEOUT} seconds")
+            time.sleep(TIMEOUT)
+    except KeyboardInterrupt as e:
+        print("Stopping Chord Routine Thread...")
+        stopped = True
+    
 
 # Uploading Files
 from fastapi import APIRouter, UploadFile, File, Form
@@ -112,7 +490,7 @@ router = APIRouter()
 
 @router.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
-    with open(getcwd() + "/" + file.filename, "wb") as myfile:
+    with open(getcwd() + "/downloads" + file.filename, "wb") as myfile:
         content = await file.read()
         myfile.write(content)
         myfile.close()
@@ -121,7 +499,7 @@ async def upload_file(file: UploadFile = File(...)):
 
 @router.get("/file/{name_file}")
 def get_file(name_file: str):
-    return FileResponse(getcwd() + "/" + name_file)
+    return FileResponse(getcwd() + "/downloads" + name_file)
 
 # Cliente
 # Metodo para que el cliente le pida un archivo a traves de una url al servidor con el que se esta comunicando
@@ -133,13 +511,12 @@ def download_file(url: str):
     file = download_file(url=url)#requests.get(url, verify=False)
 
 
-    return FileResponse(getcwd() + "/" + file, media_type="application/octet-stream", filename=file)
+    return FileResponse(getcwd() + "/downloads" + file, media_type="application/octet-stream", filename=file)
 
 # Server
 @router.get("/api/download/{name_file}")
 def download_file(name_file: str):
-    return FileResponse(getcwd() + "/" + name_file, media_type="application/octet-stream", filename=name_file)
-
+    return FileResponse(getcwd() + "/downloads" + name_file, media_type="application/octet-stream", filename=name_file)
 
 @router.delete("/delete/{name_file}")
 def delete_file(name_file: str):
@@ -163,3 +540,5 @@ def delete_file(folder_name: str = Form(...)):
     }, status_code=200)
 
 app.include_router(router)
+print("EMPEZAMOS")
+init_servers(database)

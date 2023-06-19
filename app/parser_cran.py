@@ -29,9 +29,7 @@ def create_txt_files(filename, path_save):
             output_file.write(f'Author: {doc[2]}\n')
             output_file.write(f'Body:\n{doc[3]}\n')
             print(f'Created document_{doc[0]}.txt')
-        
-    
 
-#path_cran = '/home/roxy/Roxana-linux/SD/distributed_search_engine/processes/collections/cran/cran.all.1400'
-#path_save = '/home/roxy/Roxana-linux/SD/distributed_search_engine/processes'
-#create_txt_files(path_cran, path_save)
+#current_dir = os.path.dirname(os.path.abspath(__file__))
+#path_cran = os.path.join(current_dir, "collections/cran/cran.all.1400")
+#create_txt_files(path_cran, current_dir)
