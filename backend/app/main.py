@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Optional, List
+from math import floor
 
 import requests # Para realizar peticiones a otros servers y descargar archivos
 
@@ -80,16 +81,18 @@ if not local:
 app = FastAPI()
 
 #ROXANA
-current_dir = os.path.dirname(os.path.abspath(__file__))
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 lock = threading.Lock() 
 ports = [10001, 10002] #MODIFICAR CAMBIAR LISTA [10001,10002,10003]
-path_txts = os.path.join(current_dir, "txts")
-files_name = ['document_1.txt', 'document_2.txt', 'document_3.txt'] #LOs 3 servidores tendran los mismos docs
-DATABASE_DIR = os.path.join(current_dir, "databases")
+PATH_TXTS = os.path.join(CURRENT_DIR, "txts")
+#files_name = ['document_1.txt', 'document_2.txt', 'document_3.txt'] #LOs 3 servidores tendran los mismos docs
+DATABASE_DIR = os.path.join(CURRENT_DIR, "databases")
 database_files = ['db1.db', 'db2.db', 'db3.db']
 database = DataB()
 server_ip = '0.0.0.0' #NECESITO SABER EL IP DE CADA SERVIDOR Y TENERLO EN UNA VARIABLE
-number_servers = 10 # NECESITO SABER EL TOTAL DE SERVIDORES DE LA RED
+servers_list = {'0.0.0.0', '0.0.0.1', '0.0.0.2'} # NECESITO SABER EL TOTAL DE SERVIDORES DE LA RED
+n_doc = 9 #1400 # NUMERO TOTAL DE DOCUMENTOS DE LA RED
+
 
 # Configuración de CORS
 origins = [
@@ -193,16 +196,34 @@ def match_by_name(text:str, datab): #ROXANA
     print("RESULTADO AUTHOR",result_2)
     return result_2 #,result_1
 
+#asignar los documentos a cada server segun el orden en la lista
+def assign_documents(index): #ROXANA
+    print("ENTRO A ASSIGN DOCUMENTS")
+    files_list = []
+    start = index*floor(n_doc/len(servers_list))
+    end = (index + 1)*floor(n_doc/len(servers_list))
+    contenido = os.listdir(PATH_TXTS)
+    for doc in contenido[start:end]:
+        print("doc ", doc)
+        files_list.append(doc)
+    return files_list
 
 # Este metodo carga la base de datos del server al ser levantado este
 # Asumo que conozco los IPs de cada servidor y la cantidad de servidores 
 def init_servers(datab): #ROXANA
     print("INIT SERVERS")
-    text_list = convert_text_to_text_class(path_txts,files_name)
-    #A cada servidor le toca un archivo.db que se asigna en dependencia de su puerto
-    datab.create_connection(DATABASE_DIR+database_files[2]) #MODIFICAR CAMBIAR ITERACION
-    for file in text_list:
-        datab.insert_file(file)
+    for i, s in enumerate(servers_list):
+        print("index ", i)
+        print(f"s == server_ip: {s}=={server_ip}")
+        if s == server_ip:
+            files_list = assign_documents(i)
+            print("files_list ", files_list)
+            print("PATH_TXTS ", PATH_TXTS)
+            text_list = convert_text_to_text_class(PATH_TXTS,files_list)
+            #A cada servidor le toca un archivo.db que se asigna en dependencia de su puerto
+            datab.create_connection(DATABASE_DIR + database_files[2]) #MODIFICAR CAMBIAR ITERACION
+            for file in text_list:
+                datab.insert_file(file)
 
     # node.run() #CARLOS
     print("Node Run")
@@ -219,7 +240,7 @@ vm = VectorModel()
 path = Path("txts") # play
 files_name=["document_1.txt","document_2.txt","document_102.txt","document_56.txt","document_387.txt"]
 
-documents_list = database.convert_text_to_text_class(path=path, files_name=files_name)
+documents_list = convert_text_to_text_class(path=path, files_name=files_name)
 
 vm.doc_terms_data(documents_list)
 def tf_idf(textt: str):
