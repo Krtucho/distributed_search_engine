@@ -1,6 +1,6 @@
 import sqlite3
 from sqlite3 import Error
-from backend.app.parser_cran import get_data_from
+from parser_cran import get_data_from
 import re
 import os
 
@@ -10,6 +10,9 @@ class Text:
         self.title = title
         self.author = author
         self.body = body
+    
+    def __str__(self) -> str:
+        return f"id:{self.id} title:{self.title} author:{self.author}"
 
 class DataB:
     def __init__(self):
@@ -25,7 +28,22 @@ class DataB:
         (?, ?, ?);
         """
         self.execute_query(create_users, text_file)
-        
+    
+    def get_documents(self):
+        docs = []
+        query = "SELECT * FROM File;"
+        result = self.execute_read_query(query)
+        if result:
+            for row in result:
+                id = row[0]
+                title = row[1]
+                author = row[2]
+                body = row[3]
+                document = Text(id, title, author, body)
+                docs.append(document)
+        return docs
+
+
     def close_connection(self):
         print("ENtro en CLose Connection")
         self.cursor.close()
@@ -113,9 +131,9 @@ def convert_text_to_text_class(path, files_name: list):
     return text_list
 
 #if __name__ == '__main__':
-#       PARA PROBAR LOS METODOS
+#       #PARA PROBAR LOS METODOS
 #    current_dir = os.path.dirname(os.path.abspath(__file__))
-#    path =  os.path.join(current_dir, "databases/db3.db")
+#    path =  os.path.join(current_dir, "databases/db4.db")
 #    path_txts =  os.path.join(current_dir, "txts")
 #    
 #    files_name = ['document_1.txt', 'document_2.txt', 'document_3.txt']
@@ -125,6 +143,9 @@ def convert_text_to_text_class(path, files_name: list):
 #    for text in text_list:
 #        datab.insert_file(text)
 #    
+#    textlist = datab.get_documents()
+#    for t in textlist:
+#        print(t)
 #    query = text_list[2].author
 #    select_files = f"SELECT Author FROM File WHERE File.Author = '{query}'"
 #    a = f"SELECT Author FROM File "

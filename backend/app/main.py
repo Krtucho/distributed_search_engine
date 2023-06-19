@@ -88,6 +88,8 @@ files_name = ['document_1.txt', 'document_2.txt', 'document_3.txt'] #LOs 3 servi
 DATABASE_DIR = os.path.join(current_dir, "databases")
 database_files = ['db1.db', 'db2.db', 'db3.db']
 database = DataB()
+server_ip = '0.0.0.0' #NECESITO SABER EL IP DE CADA SERVIDOR Y TENERLO EN UNA VARIABLE
+number_servers = 10 # NECESITO SABER EL TOTAL DE SERVIDORES DE LA RED
 
 # Configuración de CORS
 origins = [
@@ -191,16 +193,27 @@ def match_by_name(text:str, datab): #ROXANA
     print("RESULTADO AUTHOR",result_2)
     return result_2 #,result_1
 
-#ROXANA
-#Este metodo carga la base de datos del server al ser levantado este
-def init_servers(datab): # De los servers yo se su IP
+
+# Este metodo carga la base de datos del server al ser levantado este
+# Asumo que conozco los IPs de cada servidor y la cantidad de servidores 
+def init_servers(datab): #ROXANA
     print("INIT SERVERS")
     text_list = convert_text_to_text_class(path_txts,files_name)
     #A cada servidor le toca un archivo.db que se asigna en dependencia de su puerto
     datab.create_connection(DATABASE_DIR+database_files[2]) #MODIFICAR CAMBIAR ITERACION
     for file in text_list:
         datab.insert_file(file)
+
+    # node.run() #CARLOS
+    print("Node Run")
+    # t1 = threading.Thread(target=node.run)
+    t2 = threading.Thread(target=chord_replication_routine)
+
+    # t1.start()
+    t2.start()
+
     print("SALIO DEL INIT")
+
 ######## SRI ########
 vm = VectorModel()
 path = Path("txts") # play
@@ -464,15 +477,6 @@ def chord_replication_routine():
     except KeyboardInterrupt as e:
         print("Stopping Chord Routine Thread...")
         stopped = True
-
-def init_servers():
-    # node.run()
-    print("Node Run")
-    # t1 = threading.Thread(target=node.run)
-    t2 = threading.Thread(target=chord_replication_routine)
-
-    # t1.start()
-    t2.start()
     
 
 # Uploading Files
