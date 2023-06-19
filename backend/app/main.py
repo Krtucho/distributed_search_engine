@@ -83,16 +83,17 @@ app = FastAPI()
 #ROXANA
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 lock = threading.Lock() 
-ports = [10001, 10002] #MODIFICAR CAMBIAR LISTA [10001,10002,10003]
+ports = [10002] #MODIFICAR CAMBIAR LISTA [10001,10002,10003]
 PATH_TXTS = os.path.join(CURRENT_DIR, "txts")
 #files_name = ['document_1.txt', 'document_2.txt', 'document_3.txt'] #LOs 3 servidores tendran los mismos docs
 DATABASE_DIR = os.path.join(CURRENT_DIR, "databases")
-database_files = ['db1.db', 'db2.db', 'db3.db']
+database_files = ['db_1.db', 'db_2.db', 'db_3.db']
 database = DataB()
-server_ip = '0.0.0.0' #NECESITO SABER EL IP DE CADA SERVIDOR Y TENERLO EN UNA VARIABLE
+server_ip = '0.0.0.1' #NECESITO SABER EL IP DE CADA SERVIDOR Y TENERLO EN UNA VARIABLE
 servers_list = {'0.0.0.0', '0.0.0.1', '0.0.0.2'} # NECESITO SABER EL TOTAL DE SERVIDORES DE LA RED
 n_doc = 9 #1400 # NUMERO TOTAL DE DOCUMENTOS DE LA RED
-
+# 499: greensite,a.l.
+# 348:
 
 # Configuración de CORS
 origins = [
@@ -132,6 +133,8 @@ files = [
 # def search_file(id):
 #     return [file["file"] for file in files if file["id"] == id]
 
+def process_results(result):
+    pass
 
 def send_notification(port, text: str, results): #ROXANA
     with lock:
@@ -140,14 +143,31 @@ def send_notification(port, text: str, results): #ROXANA
         print(clusters[0])
         server = f'http://{clusters[0]}:{port}/api/files/search/{text}'
         print(server)
-        r = requests.get(server, verify=False)
+        result = requests.get(server, verify=False)
         print("\R:")
-        print(r)
-        print(r.content)
-        print(r.text)
+        print("result ",result)
+        print("result.content ",result.content)
+        print("result.text ",result.text)
+        print("result.text[0] ",result.text[0])
         print("R/")
-        results.extend(r)  # Add matched documents to the shared list
-    
+
+        #try:
+        #    # Process your response content here
+        #    # Make sure all properties and objects are serializable
+        #    processed_results = process_results(result)
+        #    # Extend the processed results to the shared list
+        #    results.extend(processed_results)
+        #except Exception as e:
+        #    # Handle any specific serialization errors here
+        #    # Log the error or take appropriate action
+        #    print(f"Serialization Error: {e}")
+        ## ... rest of your code ...
+        for r in result:
+            print("r ", r)
+            print("r[0] ", r[0])
+            results.append(r) #results.extend(r)  # Add matched documents to the shared list
+        print("results in send_notification ", results)
+
     
 def search_by_text(text: str): #ROXANA
     print("ENTRO EN SEARCH BY TEXT")
@@ -168,7 +188,7 @@ def search_by_text(text: str): #ROXANA
         print("T.JOIN")
         t.join()
     
-    print(results) 
+    print("search_by_text results ",results) 
     # Make Ranking 
     # Luego de esperar cierta cantidad de segundos por los rankings pasamos a hacer un ranking general de todo lo q nos llego
     # TODO: Si alguna pc se demora mucho en devolver el ranking, pasamos a preguntarle a algun intregrante de su cluster que es lo que sucede
@@ -179,10 +199,13 @@ def search_by_text(text: str): #ROXANA
 
 def decorate_data(results): #ROXANA
     print("ENTRO A DECORATE DATA")
+    print("results ", results)
     final_string = {}
     for i, elem in enumerate(results):
+        print(f"i={i}, elem= {elem}")
         key = f'data_{i}'
         final_string[key] = {'name': elem, 'url': 'https://localhost:3000'}
+    print("final string ", final_string)
     return final_string
 
 def match_by_name(text:str, datab): #ROXANA
@@ -190,9 +213,11 @@ def match_by_name(text:str, datab): #ROXANA
     print("Hilo en ejecución: {}".format(threading.current_thread().native_id))
     #select_files_title = f"SELECT Title FROM File WHERE File.Title = '{text}'"
     select_files_author = f"SELECT Author FROM File WHERE File.Author = '{text}'"
-    #result_1 = datab.execute_read_query(select_files_title)
+    select_all_authors = f"SELECT Author FROM File"
+    result_1 = datab.execute_read_query(select_all_authors)
     result_2 = datab.execute_read_query(select_files_author)
-    #print("RESULTADO TITLE",result_1)
+
+    print("RESULTADO ALL AUTHORS",result_1)
     print("RESULTADO AUTHOR",result_2)
     return result_2 #,result_1
 
@@ -221,7 +246,8 @@ def init_servers(datab): #ROXANA
             print("PATH_TXTS ", PATH_TXTS)
             text_list = convert_text_to_text_class(PATH_TXTS,files_list)
             #A cada servidor le toca un archivo.db que se asigna en dependencia de su puerto
-            datab.create_connection(DATABASE_DIR + database_files[2]) #MODIFICAR CAMBIAR ITERACION
+            print(DATABASE_DIR + "/"+ database_files[0])
+            datab.create_connection(DATABASE_DIR + "/"+ database_files[0]) #MODIFICAR CAMBIAR ITERACION
             for file in text_list:
                 datab.insert_file(file)
 
@@ -313,6 +339,8 @@ def search_file_in_db(text: str): #ROXANA
     #datab = DataB() #crear una nueva database en cada hilo
     #init_servers(datab)
     matched_documents = match_by_name(text, database)
+
+    print("matched documents ", matched_documents)
     if matched_documents == None:
         #Calcularel tf_idf
         return tf_idf(text)#{"data": id}
@@ -372,7 +400,7 @@ def receive_notification(text: str):
     return text#{"data": id}
 
 @app.post("/chord/send")
-def send_notification(message: Message):
+def send_notification_app(message: Message):
     return {"server":f"Server: {message.server}","msg": f"msg: {message.content}"}
 
 # Chord Channel Endpoints
@@ -392,11 +420,10 @@ def send_message(message: Message):
         node.recomputeFingerTable()
     # return {"server":f"Server: {message.server}","msg": f"msg: {message.content}"}
     return nodeID
+
 @app.get('/chord/channel/info')
 def get_channel_members():
     return {"osmembers":node.chan.osmembers, "nBits":node.chan.nBits, "MAXPROC":node.chan.MAXPROC, "address":node.chan.address }#search_by_text(text)#{"data": id}
-
-
 
 @app.get('/chord/channel/members')
 def get_channel_members():
@@ -418,7 +445,6 @@ def post_data(files: FilesModel):
 @app.post('/chord/succ/data')
 def verify_data(address: AddressModel):
     return node.check_pred_data(address.node_id, Address(address.ip, address.port))#return {"osmembers":channel.osmembers, "nBits":channel.nBits, "MAXPROC":channel.MAXPROC }#search_by_text(text)#{"data": id}
-
 
 
 def chord_replication_routine():
