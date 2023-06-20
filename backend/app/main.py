@@ -96,6 +96,22 @@ n_doc = 9 #1400 # NUMERO TOTAL DE DOCUMENTOS DE LA RED
 # 348: van driest,e.r.
 # 139: mcmillan,f.a.
 
+
+############ SRI ############
+vm_instances = dict()
+
+######## SRI ########
+# vm = VectorModel()
+# path = Path("txts") # play
+# files_name=["document_1.txt","document_2.txt","document_102.txt","document_56.txt","document_387.txt"]
+
+# documents_list = convert_text_to_text_class(path=path, files_name=files_name)
+
+# 
+
+#############################
+
+
 # Configuración de CORS
 origins = [
     "http://localhost",
@@ -223,6 +239,19 @@ def match_by_name(text:str): #ROXANA
     print("RESULTADO AUTHOR",result_2)
     return result_2 #,result_1
 
+####### SRI #######
+def tf_idf(textt: str):
+    ranking = vm.run(textt) # necesito saber en que instancia hacer la consulta 
+    result = []
+
+    for id in ranking:
+        db_query = f"SELECT * FROM File WHERE File.ID = '{str(id)}'"
+        result.append(database.execute_read_query(select_files_author))
+    
+    return result
+    # pass # Paula
+###################
+
 #asignar los documentos a cada server segun el orden en la lista
 def assign_documents(index): #ROXANA
     print("ENTRO A ASSIGN DOCUMENTS")
@@ -258,6 +287,12 @@ def init_servers(datab): #ROXANA
             for file in text_list:
                 datab.insert_file(file)
 
+            ######### SRI #########
+            vm_instances[s] = VectorModel() # inicializar una instancia por cada servidor creado
+            vm.doc_terms_data(documents_list) # se le pasa la lista de archivos que se le pasa a la base de datos de ese server
+                                              # aqui empieza a calc os tf idf
+            #######################
+
     # node.run() #CARLOS
     print("Node Run")
     # t1 = threading.Thread(target=node.run)
@@ -268,23 +303,6 @@ def init_servers(datab): #ROXANA
 
     print("SALIO DEL INIT")
 
-######## SRI ########
-vm = VectorModel()
-path = Path("txts") # play
-files_name=["document_1.txt","document_2.txt","document_102.txt","document_56.txt","document_387.txt"]
-
-documents_list = convert_text_to_text_class(path=path, files_name=files_name)
-
-vm.doc_terms_data(documents_list)
-def tf_idf(textt: str):
-    l = vm.run(textt)
-    print(l)
-    print("hola mundo")
-    print(textt)
-    return l
-    # pass # Paula
-
-#####################
 
 class File(BaseModel):
     file_name: str
