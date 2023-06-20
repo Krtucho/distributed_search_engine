@@ -83,7 +83,7 @@ app = FastAPI()
 #ROXANA
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 lock = threading.Lock() 
-ports = [10002] #MODIFICAR CAMBIAR LISTA [10001,10002,10003]
+ports = [10001] #MODIFICAR CAMBIAR LISTA [10001,10002,10003]
 PATH_TXTS = os.path.join(CURRENT_DIR, "txts")
 #files_name = ['document_1.txt', 'document_2.txt', 'document_3.txt'] #LOs 3 servidores tendran los mismos docs
 DATABASE_DIR = os.path.join(CURRENT_DIR, "databases")
@@ -93,7 +93,8 @@ server_ip = '0.0.0.1' #NECESITO SABER EL IP DE CADA SERVIDOR Y TENERLO EN UNA VA
 servers_list = {'0.0.0.0', '0.0.0.1', '0.0.0.2'} # NECESITO SABER EL TOTAL DE SERVIDORES DE LA RED
 n_doc = 9 #1400 # NUMERO TOTAL DE DOCUMENTOS DE LA RED
 # 499: greensite,a.l.
-# 348:
+# 348: van driest,e.r.
+# 139: mcmillan,f.a.
 
 # Configuración de CORS
 origins = [
@@ -165,6 +166,7 @@ def send_notification(port, text: str, results): #ROXANA
         for r in result:
             print("r ", r)
             print("r[0] ", r[0])
+            print("r[1] ", r[1])
             results.append(r) #results.extend(r)  # Add matched documents to the shared list
         print("results in send_notification ", results)
 
@@ -212,8 +214,8 @@ def match_by_name(text:str, datab): #ROXANA
     print("ENTRO EN MATCH BY NAME")
     print("Hilo en ejecución: {}".format(threading.current_thread().native_id))
     #select_files_title = f"SELECT Title FROM File WHERE File.Title = '{text}'"
-    select_files_author = f"SELECT Author FROM File WHERE File.Author = '{text}'"
-    select_all_authors = f"SELECT Author FROM File"
+    select_files_author = f"SELECT ID, Author FROM File WHERE File.Author = '{text}'"
+    select_all_authors = f"SELECT ID, Author FROM File"
     result_1 = datab.execute_read_query(select_all_authors)
     result_2 = datab.execute_read_query(select_files_author)
 
@@ -246,8 +248,8 @@ def init_servers(datab): #ROXANA
             print("PATH_TXTS ", PATH_TXTS)
             text_list = convert_text_to_text_class(PATH_TXTS,files_list)
             #A cada servidor le toca un archivo.db que se asigna en dependencia de su puerto
-            print(DATABASE_DIR + "/"+ database_files[0])
-            datab.create_connection(DATABASE_DIR + "/"+ database_files[0]) #MODIFICAR CAMBIAR ITERACION
+            print(DATABASE_DIR + "/"+ database_files[1])
+            datab.create_connection(DATABASE_DIR + "/"+ database_files[1]) #MODIFICAR CAMBIAR ITERACION
             for file in text_list:
                 datab.insert_file(file)
 
@@ -550,19 +552,22 @@ def get_file(name_file: str):
 
 # Cliente
 # Metodo para que el cliente le pida un archivo a traves de una url al servidor con el que se esta comunicando
-@router.get("/download/{url}")
-def download_file(url: str):
-    # Se le pide al servidor que se encuentra en url el archivo
-    # server = f'{cluster}'
-    # print(server)
-    file = download_file(url=url)#requests.get(url, verify=False)
+@router.get("/download/{number}")
+def download_file(number: str):
+    print("ENTRO EN DOWNLOAD FILE")
+    print("number ", number)
+    doc = "document_" +number +".txt"
+    file_path = Path(os.path.join(PATH_TXTS,doc))
 
+    print("filepath ", filepath)
+    if not file_path.exists(): #Comprueba si el archivo existe
+        return {"error": f"File '{doc}' not found"}
 
-    return FileResponse(getcwd() + "/downloads" + file, media_type="application/octet-stream", filename=file)
+    return FileResponse(file_path,media_type="application/octet-stream", filename=doc)
 
 # Server
 @router.get("/api/download/{name_file}")
-def download_file(name_file: str):
+def download_file_api(name_file: str):
     return FileResponse(getcwd() + "/downloads" + name_file, media_type="application/octet-stream", filename=name_file)
 
 @router.delete("/delete/{name_file}")
