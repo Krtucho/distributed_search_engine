@@ -83,13 +83,13 @@ app = FastAPI()
 #ROXANA
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 lock = threading.Lock() 
-ports = [10001] #MODIFICAR CAMBIAR LISTA [10001,10002,10003]
+ports = [10002] #MODIFICAR CAMBIAR LISTA [10001,10002,10003]
 PATH_TXTS = os.path.join(CURRENT_DIR, "txts")
 #files_name = ['document_1.txt', 'document_2.txt', 'document_3.txt'] #LOs 3 servidores tendran los mismos docs
 DATABASE_DIR = os.path.join(CURRENT_DIR, "databases")
 database_files = ['db_1.db', 'db_2.db', 'db_3.db']
 database = DataB()
-server_ip = '0.0.0.1' #NECESITO SABER EL IP DE CADA SERVIDOR Y TENERLO EN UNA VARIABLE
+server_ip = '0.0.0.0' #NECESITO SABER EL IP DE CADA SERVIDOR Y TENERLO EN UNA VARIABLE
 servers_list = {'0.0.0.0', '0.0.0.1', '0.0.0.2'} # NECESITO SABER EL TOTAL DE SERVIDORES DE LA RED
 n_doc = 9 #1400 # NUMERO TOTAL DE DOCUMENTOS DE LA RED
 # 499: greensite,a.l.
@@ -210,14 +210,14 @@ def decorate_data(results): #ROXANA
     print("final string ", final_string)
     return final_string
 
-def match_by_name(text:str, datab): #ROXANA
+def match_by_name(text:str): #ROXANA
     print("ENTRO EN MATCH BY NAME")
     print("Hilo en ejecución: {}".format(threading.current_thread().native_id))
     #select_files_title = f"SELECT Title FROM File WHERE File.Title = '{text}'"
     select_files_author = f"SELECT ID, Author FROM File WHERE File.Author = '{text}'"
     select_all_authors = f"SELECT ID, Author FROM File"
-    result_1 = datab.execute_read_query(select_all_authors)
-    result_2 = datab.execute_read_query(select_files_author)
+    result_1 = database.execute_read_query(select_all_authors)
+    result_2 = database.execute_read_query(select_files_author)
 
     print("RESULTADO ALL AUTHORS",result_1)
     print("RESULTADO AUTHOR",result_2)
@@ -235,6 +235,11 @@ def assign_documents(index): #ROXANA
         files_list.append(doc)
     return files_list
 
+def check_database(number):
+    query = f"SELECT ID FROM File WHERE File.ID = '{number}'"
+    result_ID = database.execute_read_query(query)
+    return result_ID
+
 # Este metodo carga la base de datos del server al ser levantado este
 # Asumo que conozco los IPs de cada servidor y la cantidad de servidores 
 def init_servers(datab): #ROXANA
@@ -248,8 +253,8 @@ def init_servers(datab): #ROXANA
             print("PATH_TXTS ", PATH_TXTS)
             text_list = convert_text_to_text_class(PATH_TXTS,files_list)
             #A cada servidor le toca un archivo.db que se asigna en dependencia de su puerto
-            print(DATABASE_DIR + "/"+ database_files[1])
-            datab.create_connection(DATABASE_DIR + "/"+ database_files[1]) #MODIFICAR CAMBIAR ITERACION
+            print(DATABASE_DIR + "/"+ database_files[0])
+            datab.create_connection(DATABASE_DIR + "/"+ database_files[0]) #MODIFICAR CAMBIAR ITERACION
             for file in text_list:
                 datab.insert_file(file)
 
@@ -340,7 +345,7 @@ def search_file_in_db(text: str): #ROXANA
     print("Hilo en ejecución: {}".format(threading.current_thread().name))
     #datab = DataB() #crear una nueva database en cada hilo
     #init_servers(datab)
-    matched_documents = match_by_name(text, database)
+    matched_documents = match_by_name(text)
 
     print("matched documents ", matched_documents)
     if matched_documents == None:
@@ -560,15 +565,33 @@ def download_file(number: str):
     file_path = Path(os.path.join(PATH_TXTS,doc))
 
     print("filepath ", filepath)
-    if not file_path.exists(): #Comprueba si el archivo existe
-        return {"error": f"File '{doc}' not found"}
-
-    return FileResponse(file_path,media_type="application/octet-stream", filename=doc)
+    if not file_path.exists(): #Comprueba si el archivo existe en la carpeta txts
+        return {"error": f"File '{doc}' not found in the folder."}
+    
+    #Comprobar si el archivo esta en la base de datos del servidor
+    result_ID = check_database(number)
+    
+    if len(result_ID) > 0:
+        response = FileResponse(file_path,media_type="application/octet-stream", filename=doc)
+    else:
+        response = {"error": f"File '{doc}' not found in the database."}
+    return response 
 
 # Server
-@router.get("/api/download/{name_file}")
-def download_file_api(name_file: str):
-    return FileResponse(getcwd() + "/downloads" + name_file, media_type="application/octet-stream", filename=name_file)
+@router.get("/api/download/{number}")
+def download_file_api(number: str):
+    print("ENTRO EN API DOWNLOAD")
+    filename = f"document_{number}.txt"
+    print("FILENAME ", filename)
+
+    #Comprobar si el archivo esta en la base de datos del servidor
+    result_ID = check_database(number)
+    if len(result_ID) > 0:
+        response = FileResponse(getcwd() + "/txts" + "/"+filename, media_type="application/octet-stream", filename=filename)
+    else:
+        response = {"error": f"File '{filename}' not found in the database."}
+    return response
+    #return FileResponse(getcwd() + "/downloads" + "/"+filename, media_type="application/octet-stream", filename=filename)
 
 @router.delete("/delete/{name_file}")
 def delete_file(name_file: str):

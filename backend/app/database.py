@@ -131,28 +131,31 @@ def convert_text_to_text_class(path, files_name: list):
     return text_list
 
 #if __name__ == '__main__':
-#       #PARA PROBAR LOS METODOS
-#    current_dir = os.path.dirname(os.path.abspath(__file__))
-#    path =  os.path.join(current_dir, "databases/db4444.db")
-#    path_txts =  os.path.join(current_dir, "txts")
-#    
-#    files_name = ['document_1.txt', 'document_2.txt', 'document_3.txt']
-#    text_list = convert_text_to_text_class(path_txts, files_name)
-#    datab = DataB()
-#    datab.create_connection(path)
-#    for text in text_list:
-#        datab.insert_file(text)
-#    
-#    textlist = datab.get_documents()
-#    for t in textlist:
-#        print(t)
-#
-#    query = text_list[2].author
-#    select_files = f"SELECT ID, Author FROM File WHERE File.Author = '{query}'"
-#    a = f"SELECT ID, Author FROM File "
-#    result = datab.execute_read_query(a)
-#    print("RESULT ", result)
-#    for i in result:
-#        print("result[0]",i[0])
-#        print("result[1]",i[1])
-#        print()
+       #PARA PROBAR LOS METODOS
+    #current_dir = os.path.dirname(os.path.abspath(__file__))
+    #path =  os.path.join(current_dir, "databases/db4.db")
+    #path_txts =  os.path.join(current_dir, "txts")
+    #
+    #files_name = ['document_12.txt', 'document_23.txt', 'document_34.txt']
+    #text_list = convert_text_to_text_class(path_txts, files_name)
+    #datab = DataB()
+    #datab.create_connection(path)
+    #for text in text_list:
+    #    datab.insert_file(text)
+    #
+    #textlist = datab.get_documents()
+    #for t in textlist:
+    #    print(t)
+    #query = text_list[2].author
+    #query_ID = f"SELECT ID FROM File WHERE File.ID = '{10}'"
+    #result_ID = datab.execute_read_query(query_ID)
+    #print("result ID ", result_ID)
+    #print("len ", len(result_ID))
+    #select_files = f"SELECT ID, Author FROM File WHERE File.Author = '{query}'"
+    #a = f"SELECT ID, Author FROM File "
+    #result = datab.execute_read_query(a)
+    #print("RESULT ", result)
+    #for i in result:
+    #    print("result[0]",i[0])
+    #    print("result[1]",i[1])
+    #    print()
