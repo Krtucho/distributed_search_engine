@@ -152,13 +152,13 @@ class VectorModel:
         devuelve el ranking
         """
 
-        sim = dict()
+        sim = []
 
         for doc in self.query_sim:
             if self.query_sim[doc] > 0:
-                sim[doc] = self.query_sim[doc]
+                sim.append((doc, self.query_sim[doc]))
 
-        rank = sorted(sim.items(), key=lambda x: x[1], reverse=True)
+        rank = sorted(sim, key=lambda x: x[1], reverse=True)
 
         return rank
 

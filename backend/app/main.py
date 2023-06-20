@@ -98,7 +98,7 @@ n_doc = 9 #1400 # NUMERO TOTAL DE DOCUMENTOS DE LA RED
 
 
 ############ SRI ############
-vm_instances = dict()
+vec_mod = VectorModel()
 
 ######## SRI ########
 # vm = VectorModel()
@@ -210,6 +210,26 @@ def search_by_text(text: str): #ROXANA
     # Make Ranking 
     # Luego de esperar cierta cantidad de segundos por los rankings pasamos a hacer un ranking general de todo lo q nos llego
     # TODO: Si alguna pc se demora mucho en devolver el ranking, pasamos a preguntarle a algun intregrante de su cluster que es lo que sucede
+    
+    _ranking = [] # aqui tiene q estar la union de los rankings de todos los servidores
+
+    ranking_ord = sorted(_ranking, key=lambda x: x[1], reverse=True)
+
+    visited = set()
+    new_rank = []
+
+    for t in ranking_ord:
+        if t[0] not in visited:
+            new_rank.append(t)
+            visited.add(t[0])
+    
+    result = []
+
+    for id, rank in new_rank:
+        db_query = f"SELECT * FROM File WHERE File.ID = '{str(id)}'"
+        result.append(database.execute_read_query(db_query))
+    
+    # return result
 
     # Return Response
     # Retornamos el ranking general de todos los rankings combinados
@@ -241,14 +261,7 @@ def match_by_name(text:str): #ROXANA
 
 ####### SRI #######
 def tf_idf(textt: str):
-    ranking = vm.run(textt) # necesito saber en que instancia hacer la consulta 
-    result = []
-
-    for id in ranking:
-        db_query = f"SELECT * FROM File WHERE File.ID = '{str(id)}'"
-        result.append(database.execute_read_query(select_files_author))
-    
-    return result
+    return vec_mod.run(textt)
     # pass # Paula
 ###################
 
@@ -288,7 +301,6 @@ def init_servers(datab): #ROXANA
                 datab.insert_file(file)
 
             ######### SRI #########
-            vm_instances[s] = VectorModel() # inicializar una instancia por cada servidor creado
             vm.doc_terms_data(documents_list) # se le pasa la lista de archivos que se le pasa a la base de datos de ese server
                                               # aqui empieza a calc os tf idf
             #######################
