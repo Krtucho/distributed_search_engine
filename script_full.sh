@@ -4,6 +4,7 @@ gateway=172.21.0.
 network_name=fastapi-quasar
 
 
+
 for (( i=1; i<=$servers_amount; i++ ))
 do
  let suma=$i+1
