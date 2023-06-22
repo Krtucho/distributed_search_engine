@@ -391,10 +391,12 @@ export default defineComponent({
         'Content-Type': 'application/json',
         "Accept": "application/json",
       }
+      console.log(this.nombreCoctel)
       //const result = await axios.post('https://testapi.org/post', { name: this.nombreCoctel });//this.nombreCoctel; //"/api/json/v1/1/search.php?s=" + this.nombreCoctel
       //var url = "https://jsonplaceholder.typicode.com/users";// + request;
-      server = process.env.API_SERVER
-      var url = "http://172.21.0.2:8000/"
+      var server = process.env.API_SERVER
+      var url ="https://"+server+"/files/search/"+this.nombreCoctel// "http://172.21.0.2:8000/"
+      console.log(url)
       // if(this.model == 'Boolean'){
       //   url = url+"boolean/";
       // }

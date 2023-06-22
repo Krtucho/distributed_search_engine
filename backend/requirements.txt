@@ -5,4 +5,4 @@ requests
 python-multipart
 nltk
 aiofiles
-sqlite3
+numpy

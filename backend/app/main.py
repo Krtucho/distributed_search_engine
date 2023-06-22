@@ -32,6 +32,11 @@ from servers import *
 # Variable para decir si es esta corriendo en local o en docker
 local = True
 
+try:
+    local=bool(os.environ.get("LOCAL"))
+except:
+    local = True
+
 # Docker
 gateway = "172.21.0.1"
 
