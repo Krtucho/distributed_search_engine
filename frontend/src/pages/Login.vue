@@ -393,6 +393,7 @@ export default defineComponent({
       }
       //const result = await axios.post('https://testapi.org/post', { name: this.nombreCoctel });//this.nombreCoctel; //"/api/json/v1/1/search.php?s=" + this.nombreCoctel
       //var url = "https://jsonplaceholder.typicode.com/users";// + request;
+      server = process.env.API_SERVER
       var url = "http://172.21.0.2:8000/"
       // if(this.model == 'Boolean'){
       //   url = url+"boolean/";
