@@ -263,6 +263,8 @@ def match_by_name(text:str): #ROXANA
 
 ####### SRI #######
 def tf_idf(textt: str):
+    # http://localhost:10000/files/search/brenckman,m.
+    print("---------------Entro en tf_idf")
     ranking = vec_mod.run(textt)
     result = []
     
@@ -313,6 +315,7 @@ def init_servers(datab): #ROXANA
             ######### SRI #########
             vec_mod.doc_terms_data(text_list) # se le pasa la lista de archivos que se le pasa a la base de datos de ese server
                                               # aqui empieza a calc os tf idf
+            # print(vec_mod.doc_terms)
             #######################
 
     # node.run() #CARLOS
@@ -381,7 +384,7 @@ def show_file(text: str):
 # Este es el que llama al TF-IDF
 @app.get('/api/files/search/{text}') 
 def search_file_in_db(text: str): #ROXANA
-    print("ENTRO A SEARCH FILE IN DB")
+    print("----------------------ENTRO A SEARCH FILE IN DB")
     print("Hilo en ejecución: {}".format(threading.current_thread().name))
     #datab = DataB() #crear una nueva database en cada hilo
     #init_servers(datab)
