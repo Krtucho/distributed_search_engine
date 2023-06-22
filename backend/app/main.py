@@ -44,12 +44,12 @@ servers:List[Address] = get_servers(local)
 clusters = ['localhost']
 
 # Chord
-first_server_address_ip = servers[0].ip if len(servers) > 0 else 'localhost' # Correrlo local
-first_server_address_port = 8000  # Correrlo local
+first_server_address_ip = 'localhost' # Correrlo local
+first_server_address_port = 10000  # Correrlo local
 
 if local:
-    first_server_address_ip = 'localhost' # Correrlo local
-    first_server_address_port = 10000  # Correrlo local
+    first_server_address_ip = str(os.environ.get('FIRST_SERVER')) #servers[0].ip if len(servers) > 0 else 'localhost' # Correrlo local
+    first_server_address_port = 8000  # Correrlo local
 
 # Chord Thread
 stopped = False
