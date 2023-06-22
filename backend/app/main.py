@@ -36,7 +36,8 @@ try:
     local=bool(os.environ.get("LOCAL"))
 except:
     local = True
-
+#LO PONGO MANUAL
+local = True
 # Docker
 gateway = "172.21.0.1"
 
@@ -88,13 +89,13 @@ app = FastAPI()
 #ROXANA
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 lock = threading.Lock() 
-ports = [10002] #MODIFICAR CAMBIAR LISTA [10001,10002,10003]
+ports = [10001] #MODIFICAR CAMBIAR LISTA [10001,10002,10003]
 PATH_TXTS = os.path.join(CURRENT_DIR, "txts")
 #files_name = ['document_1.txt', 'document_2.txt', 'document_3.txt'] #LOs 3 servidores tendran los mismos docs
 DATABASE_DIR = os.path.join(CURRENT_DIR, "databases")
 database_files = ['db_1.db', 'db_2.db', 'db_3.db']
 database = DataB()
-server_ip = '0.0.0.0' #NECESITO SABER EL IP DE CADA SERVIDOR Y TENERLO EN UNA VARIABLE
+server_ip = '0.0.0.1' #NECESITO SABER EL IP DE CADA SERVIDOR Y TENERLO EN UNA VARIABLE
 servers_list = {'0.0.0.0', '0.0.0.1', '0.0.0.2'} # NECESITO SABER EL TOTAL DE SERVIDORES DE LA RED
 n_doc = 9 #1400 # NUMERO TOTAL DE DOCUMENTOS DE LA RED
 # 499: greensite,a.l.
@@ -148,14 +149,16 @@ files = [
 def process_results(result):
     pass
 
-def send_notification(port, text: str, results): #ROXANA
+def send_notification(port, text: str, results_name, results_ranking): #ROXANA
     with lock:
         print("ENTRO EN SEND NOTIFICATION")
         print("Hilo en ejecución: {}".format(threading.current_thread().name))
         print(clusters[0])
         server = f'http://{clusters[0]}:{port}/api/files/search/{text}'
         print(server)
+
         result = requests.get(server, verify=False)
+         
         print("\R:")
         print("result ",result)
         print("result.content ",result.content)
@@ -163,36 +166,39 @@ def send_notification(port, text: str, results): #ROXANA
         print("result.text[0] ",result.text[0])
         print("R/")
 
-        #try:
-        #    # Process your response content here
-        #    # Make sure all properties and objects are serializable
-        #    processed_results = process_results(result)
-        #    # Extend the processed results to the shared list
-        #    results.extend(processed_results)
-        #except Exception as e:
-        #    # Handle any specific serialization errors here
-        #    # Log the error or take appropriate action
-        #    print(f"Serialization Error: {e}")
-        ## ... rest of your code ...
-        for r in result:
-            print("r ", r)
-            print("r[0] ", r[0])
-            print("r[1] ", r[1])
-            results.append(r) #results.extend(r)  # Add matched documents to the shared list
-        print("results in send_notification ", results)
+        selected_list = result.json()
+        print("selected list ", selected_list)
+        selected_name = selected_list[1]
+        selected_result = selected_list[0]
+
+        print("selected_name ", selected_name)
+        if selected_name:# El resultado que devolvio la peticion es el nombre del archivo
+            for r_name in selected_result:
+                print("r_name ", r_name)
+                print("r_name[0] ", r_name[0])
+                print("r_name[1] ", r_name[1])
+                results_name.append(r_name) #results.extend(r)  # Add matched documents to the shared list
+            print("results in send_notification ", results_name)
+        else:# El resultado que devolvio la peticion es el ranking de los posibles archivos
+            for r_ranking in selected_result:
+                print("r_ranking ", r_ranking)
+                print("r_ranking[0] ", r_ranking[0])
+                print("r_ranking[1] ", r_ranking[1])
+                results_ranking.append(r_ranking)
+
 
     
 def search_by_text(text: str): #ROXANA
     print("ENTRO EN SEARCH BY TEXT")
     print(text)
     threading_list = []
-    ranking = [] # List with the ranking and query documents results
-    results = []  # Shared list to store the matched document names
+    results_ranking = [] # List with the ranking and query documents results
+    results_name = []  # Shared list to store the matched document names
     # Construir ranking a partir de cada listado de archivos recibidos gracias al tf_idf
     # Search text in every server
     # TODO: Paralelizar peticiones a todos los servidores para pedirles sus rankings. https://docs.python.org/es/3/library/multiprocessing.html
     for i, port in enumerate(ports): # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
-        t = threading.Thread(target=send_notification, args=(port, text, results), name="Hilo {}".format(i))
+        t = threading.Thread(target=send_notification, args=(port, text, results_name, results_ranking), name="Hilo {}".format(i))
         threading_list.append(t)
         print("T.START")
         t.start()
@@ -201,7 +207,8 @@ def search_by_text(text: str): #ROXANA
         print("T.JOIN")
         t.join()
     
-    print("search_by_text results ",results) 
+    print("search_by_text results_name ",results_name)
+    print("search_by_text results_ranking ",results_ranking)
     # Make Ranking 
     # Luego de esperar cierta cantidad de segundos por los rankings pasamos a hacer un ranking general de todo lo q nos llego
     # TODO: Si alguna pc se demora mucho en devolver el ranking, pasamos a preguntarle a algun intregrante de su cluster que es lo que sucede
@@ -226,7 +233,9 @@ def search_by_text(text: str): #ROXANA
 
     # Return Response
     # Retornamos el ranking general de todos los rankings combinados
-    return decorate_data(results)
+    results_name_str = decorate_data(results_name)
+    results_ranking_str = decorate_data_rank(results_ranking)
+    return results_name_str, results_ranking_str
 
 def decorate_data(results): #ROXANA
     print("ENTRO A DECORATE DATA")
@@ -235,21 +244,23 @@ def decorate_data(results): #ROXANA
     for i, elem in enumerate(results):
         print(f"i={i}, elem= {elem}")
         key = f'data_{i}'
-        final_string[key] = {'name': elem, 'url': 'https://localhost:3000'}
+        print("elem[0] ", elem[0])
+        print("elem[1] ", elem[1])
+        final_string[key] = {'name': {'id':elem[0], 'label': elem[1]}, 'url': 'https://localhost:3000'}
     print("final string ", final_string)
     return final_string
 
 
-# def decorate_data_rank(ranking: list): 
-#     print("ENTRO A DECORATE DATA")
-#     print("results ", ranking)
-#     final_string = {}
-#     for i, elem in enumerate(ranking):
-#         print(f"i={i}, elem= {elem}")
-#         key = f'data_{i}'
-#         final_string[key] = {'id': elem[0], 'similarity': elem[1], 'url': 'https://localhost:3000'}
-#     print("final string ", final_string)
-#     return final_string
+def decorate_data_rank(ranking: list): 
+    print("ENTRO A DECORATE DATA")
+    print("results ", ranking)
+    final_string = {}
+    for i, elem in enumerate(ranking):
+        print(f"i={i}, elem= {elem}")
+        key = f'data_{i}'
+        final_string[key] = {'name': {'id': elem[0], 'similarity': elem[1]}, 'url': 'https://localhost:3000'}
+    print("final string ", final_string)
+    return final_string
 
 
 def match_by_name(text:str): #ROXANA
@@ -273,7 +284,7 @@ def tf_idf(textt: str):
     ranking = vec_mod.run(textt)
     result = []
     
-    for id, rank in new_rank:
+    for id, rank in ranking: #new_rank no esta definido. PONGO MOMENTANEAMENTE ranking
         db_query = f"SELECT ID, Title FROM File WHERE File.ID = '{str(id)}'"
         result.append(database.execute_read_query(db_query))
 
@@ -312,8 +323,8 @@ def init_servers(datab): #ROXANA
             print("PATH_TXTS ", PATH_TXTS)
             text_list = convert_text_to_text_class(PATH_TXTS,files_list)
             #A cada servidor le toca un archivo.db que se asigna en dependencia de su puerto
-            print(DATABASE_DIR + "/"+ database_files[0])
-            datab.create_connection(DATABASE_DIR + "/"+ database_files[0]) #MODIFICAR CAMBIAR ITERACION
+            print(DATABASE_DIR + "/"+ database_files[1])
+            datab.create_connection(DATABASE_DIR + "/"+ database_files[1]) #MODIFICAR CAMBIAR ITERACION
             for file in text_list:
                 datab.insert_file(file)
 
@@ -394,13 +405,13 @@ def search_file_in_db(text: str): #ROXANA
     #datab = DataB() #crear una nueva database en cada hilo
     #init_servers(datab)
     matched_documents = match_by_name(text)
-
+    name_selected = False 
     print("matched documents ", matched_documents)
     if matched_documents == None:
-        #Calcularel tf_idf
-        return tf_idf(text)#{"data": id}
+        #Calcularel tf_idf #{"data": id}
+        return [tf_idf(text),False] #El booleano: PARA SABER SI LO QUE DEVUELVE EL METODO ES QUE MATCHEO CON NOMBRE O CON EL RANKING
     else:
-        return matched_documents
+        return [matched_documents, True]
 
 
 @app.post("/files")
