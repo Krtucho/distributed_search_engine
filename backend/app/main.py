@@ -99,16 +99,6 @@ n_doc = 9 #1400 # NUMERO TOTAL DE DOCUMENTOS DE LA RED
 
 ############ SRI ############
 vec_mod = VectorModel()
-
-######## SRI ########
-# vm = VectorModel()
-# path = Path("txts") # play
-# files_name=["document_1.txt","document_2.txt","document_102.txt","document_56.txt","document_387.txt"]
-
-# documents_list = convert_text_to_text_class(path=path, files_name=files_name)
-
-# 
-
 #############################
 
 
@@ -211,23 +201,21 @@ def search_by_text(text: str): #ROXANA
     # Luego de esperar cierta cantidad de segundos por los rankings pasamos a hacer un ranking general de todo lo q nos llego
     # TODO: Si alguna pc se demora mucho en devolver el ranking, pasamos a preguntarle a algun intregrante de su cluster que es lo que sucede
     
-    _ranking = [] # aqui tiene q estar la union de los rankings de todos los servidores
+    # ranking_ord = sorted(ranking, key=lambda x: x[1], reverse=True)
 
-    ranking_ord = sorted(_ranking, key=lambda x: x[1], reverse=True)
+    # visited = set()
+    # new_rank = []
 
-    visited = set()
-    new_rank = []
-
-    for t in ranking_ord:
-        if t[0] not in visited:
-            new_rank.append(t)
-            visited.add(t[0])
+    # for t in ranking_ord:
+    #     if t[0] not in visited:
+    #         new_rank.append(t)
+    #         visited.add(t[0])
     
-    result = []
+    # result = []
 
-    for id, rank in new_rank:
-        db_query = f"SELECT * FROM File WHERE File.ID = '{str(id)}'"
-        result.append(database.execute_read_query(db_query))
+    # for id, rank in new_rank:
+    #     db_query = f"SELECT * FROM File WHERE File.ID = '{str(id)}'"
+    #     result.append(database.execute_read_query(db_query))
     
     # return result
 
@@ -246,6 +234,19 @@ def decorate_data(results): #ROXANA
     print("final string ", final_string)
     return final_string
 
+
+# def decorate_data_rank(ranking: list): 
+#     print("ENTRO A DECORATE DATA")
+#     print("results ", ranking)
+#     final_string = {}
+#     for i, elem in enumerate(ranking):
+#         print(f"i={i}, elem= {elem}")
+#         key = f'data_{i}'
+#         final_string[key] = {'id': elem[0], 'similarity': elem[1], 'url': 'https://localhost:3000'}
+#     print("final string ", final_string)
+#     return final_string
+
+
 def match_by_name(text:str): #ROXANA
     print("ENTRO EN MATCH BY NAME")
     print("Hilo en ejecución: {}".format(threading.current_thread().native_id))
@@ -259,11 +260,20 @@ def match_by_name(text:str): #ROXANA
     print("RESULTADO AUTHOR",result_2)
     return result_2 #,result_1
 
+
 ####### SRI #######
 def tf_idf(textt: str):
-    return vec_mod.run(textt)
+    ranking = vec_mod.run(textt)
+    result = []
+    
+    for id, rank in new_rank:
+        db_query = f"SELECT ID, Title FROM File WHERE File.ID = '{str(id)}'"
+        result.append(database.execute_read_query(db_query))
+
+    return result
     # pass # Paula
 ###################
+
 
 #asignar los documentos a cada server segun el orden en la lista
 def assign_documents(index): #ROXANA
