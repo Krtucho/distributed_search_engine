@@ -96,6 +96,12 @@ n_doc = 9 #1400 # NUMERO TOTAL DE DOCUMENTOS DE LA RED
 # 348: van driest,e.r.
 # 139: mcmillan,f.a.
 
+
+############ SRI ############
+vec_mod = VectorModel()
+#############################
+
+
 # Configuración de CORS
 origins = [
     "http://localhost",
@@ -194,6 +200,24 @@ def search_by_text(text: str): #ROXANA
     # Make Ranking 
     # Luego de esperar cierta cantidad de segundos por los rankings pasamos a hacer un ranking general de todo lo q nos llego
     # TODO: Si alguna pc se demora mucho en devolver el ranking, pasamos a preguntarle a algun intregrante de su cluster que es lo que sucede
+    
+    # ranking_ord = sorted(ranking, key=lambda x: x[1], reverse=True)
+
+    # visited = set()
+    # new_rank = []
+
+    # for t in ranking_ord:
+    #     if t[0] not in visited:
+    #         new_rank.append(t)
+    #         visited.add(t[0])
+    
+    # result = []
+
+    # for id, rank in new_rank:
+    #     db_query = f"SELECT * FROM File WHERE File.ID = '{str(id)}'"
+    #     result.append(database.execute_read_query(db_query))
+    
+    # return result
 
     # Return Response
     # Retornamos el ranking general de todos los rankings combinados
@@ -210,6 +234,19 @@ def decorate_data(results): #ROXANA
     print("final string ", final_string)
     return final_string
 
+
+# def decorate_data_rank(ranking: list): 
+#     print("ENTRO A DECORATE DATA")
+#     print("results ", ranking)
+#     final_string = {}
+#     for i, elem in enumerate(ranking):
+#         print(f"i={i}, elem= {elem}")
+#         key = f'data_{i}'
+#         final_string[key] = {'id': elem[0], 'similarity': elem[1], 'url': 'https://localhost:3000'}
+#     print("final string ", final_string)
+#     return final_string
+
+
 def match_by_name(text:str): #ROXANA
     print("ENTRO EN MATCH BY NAME")
     print("Hilo en ejecución: {}".format(threading.current_thread().native_id))
@@ -222,6 +259,23 @@ def match_by_name(text:str): #ROXANA
     print("RESULTADO ALL AUTHORS",result_1)
     print("RESULTADO AUTHOR",result_2)
     return result_2 #,result_1
+
+
+####### SRI #######
+def tf_idf(textt: str):
+    # http://localhost:10000/files/search/brenckman,m.
+    print("---------------Entro en tf_idf")
+    ranking = vec_mod.run(textt)
+    result = []
+    
+    for id, rank in new_rank:
+        db_query = f"SELECT ID, Title FROM File WHERE File.ID = '{str(id)}'"
+        result.append(database.execute_read_query(db_query))
+
+    return result
+    # pass # Paula
+###################
+
 
 #asignar los documentos a cada server segun el orden en la lista
 def assign_documents(index): #ROXANA
@@ -258,6 +312,12 @@ def init_servers(datab): #ROXANA
             for file in text_list:
                 datab.insert_file(file)
 
+            ######### SRI #########
+            vec_mod.doc_terms_data(text_list) # se le pasa la lista de archivos que se le pasa a la base de datos de ese server
+                                              # aqui empieza a calc os tf idf
+            # print(vec_mod.doc_terms)
+            #######################
+
     # node.run() #CARLOS
     print("Node Run")
     # t1 = threading.Thread(target=node.run)
@@ -268,23 +328,6 @@ def init_servers(datab): #ROXANA
 
     print("SALIO DEL INIT")
 
-######## SRI ########
-vm = VectorModel()
-path = Path("txts") # play
-files_name=["document_1.txt","document_2.txt","document_102.txt","document_56.txt","document_387.txt"]
-
-documents_list = convert_text_to_text_class(path=path, files_name=files_name)
-
-vm.doc_terms_data(documents_list)
-def tf_idf(textt: str):
-    l = vm.run(textt)
-    print(l)
-    print("hola mundo")
-    print(textt)
-    return l
-    # pass # Paula
-
-#####################
 
 class File(BaseModel):
     file_name: str
@@ -341,7 +384,7 @@ def show_file(text: str):
 # Este es el que llama al TF-IDF
 @app.get('/api/files/search/{text}') 
 def search_file_in_db(text: str): #ROXANA
-    print("ENTRO A SEARCH FILE IN DB")
+    print("----------------------ENTRO A SEARCH FILE IN DB")
     print("Hilo en ejecución: {}".format(threading.current_thread().name))
     #datab = DataB() #crear una nueva database en cada hilo
     #init_servers(datab)
