@@ -311,7 +311,7 @@ def init_servers(datab): #ROXANA
                 datab.insert_file(file)
 
             ######### SRI #########
-            vm.doc_terms_data(documents_list) # se le pasa la lista de archivos que se le pasa a la base de datos de ese server
+            vec_mod.doc_terms_data(text_list) # se le pasa la lista de archivos que se le pasa a la base de datos de ese server
                                               # aqui empieza a calc os tf idf
             #######################
 
