@@ -89,13 +89,14 @@ app = FastAPI()
 #ROXANA
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 lock = threading.Lock() 
-ports = [10001] #MODIFICAR CAMBIAR LISTA [10001,10002,10003]
+ports = [10002] #MODIFICAR CAMBIAR LISTA [10001,10002,10003]
 PATH_TXTS = os.path.join(CURRENT_DIR, "txts")
 #files_name = ['document_1.txt', 'document_2.txt', 'document_3.txt'] #LOs 3 servidores tendran los mismos docs
 DATABASE_DIR = os.path.join(CURRENT_DIR, "databases")
 database_files = ['db_1.db', 'db_2.db', 'db_3.db']
 database = DataB()
-server_ip = '0.0.0.1' #NECESITO SABER EL IP DE CADA SERVIDOR Y TENERLO EN UNA VARIABLE
+change_db = 0
+server_ip = '0.0.0.0' #NECESITO SABER EL IP DE CADA SERVIDOR Y TENERLO EN UNA VARIABLE
 servers_list = {'0.0.0.0', '0.0.0.1', '0.0.0.2'} # NECESITO SABER EL TOTAL DE SERVIDORES DE LA RED
 n_doc = 9 #1400 # NUMERO TOTAL DE DOCUMENTOS DE LA RED
 # 499: greensite,a.l.
@@ -243,10 +244,11 @@ def decorate_data(results): #ROXANA
     final_string = {}
     for i, elem in enumerate(results):
         print(f"i={i}, elem= {elem}")
-        key = f'data_{i}'
         print("elem[0] ", elem[0])
         print("elem[1] ", elem[1])
-        final_string[key] = {'name': {'id':elem[0], 'label': elem[1]}, 'url': 'https://localhost:3000'}
+        final_string['id'] = elem[0]
+        final_string['name'] = elem[1]
+        final_string["url"] = 'https://localhost:3000'
     print("final string ", final_string)
     return final_string
 
@@ -257,8 +259,9 @@ def decorate_data_rank(ranking: list):
     final_string = {}
     for i, elem in enumerate(ranking):
         print(f"i={i}, elem= {elem}")
-        key = f'data_{i}'
-        final_string[key] = {'name': {'id': elem[0], 'similarity': elem[1]}, 'url': 'https://localhost:3000'}
+        final_string['id'] = elem[0]
+        final_string['similarity'] = elem[1]
+        final_string['url'] = 'https://localhost:3000'
     print("final string ", final_string)
     return final_string
 
@@ -267,14 +270,27 @@ def match_by_name(text:str): #ROXANA
     print("ENTRO EN MATCH BY NAME")
     print("Hilo en ejecución: {}".format(threading.current_thread().native_id))
     #select_files_title = f"SELECT Title FROM File WHERE File.Title = '{text}'"
-    select_files_author = f"SELECT ID, Author FROM File WHERE File.Author = '{text}'"
+    select_files_author = f"SELECT ID, Title FROM File WHERE File.Author = '{text}'"
     select_all_authors = f"SELECT ID, Author FROM File"
-    result_1 = database.execute_read_query(select_all_authors)
-    result_2 = database.execute_read_query(select_files_author)
+    select_all_titles = f"SELECT ID, Title FROM File"
+    result_1 = database.execute_read_query(select_files_author)
+    result_2 = []
+    result_3 = database.execute_read_query(select_all_authors)
+    result_4 = database.execute_read_query(select_all_titles)
+    print("result_4 ", result_4)
+    if len(result_4) > 0:
+        for index, t in enumerate(result_4):
+            if text in t[1]:
+                result_2.append(t)
+            print("result[0]",t[0])
+            print("result[1]",t[1])
+            print()
 
-    print("RESULTADO ALL AUTHORS",result_1)
-    print("RESULTADO AUTHOR",result_2)
-    return result_2 #,result_1
+    print("RESULTADO ALL AUTHORS",result_3)
+    print("RESULTADO por AUTHOR, Title",result_1)
+    print("RESULTADO ALL Titles",result_4)
+    print("RESULTADO TITULOS SELECCIONADOS ", result_2)
+    return result_1 + result_2 
 
 
 ####### SRI #######
@@ -323,8 +339,8 @@ def init_servers(datab): #ROXANA
             print("PATH_TXTS ", PATH_TXTS)
             text_list = convert_text_to_text_class(PATH_TXTS,files_list)
             #A cada servidor le toca un archivo.db que se asigna en dependencia de su puerto
-            print(DATABASE_DIR + "/"+ database_files[1])
-            datab.create_connection(DATABASE_DIR + "/"+ database_files[1]) #MODIFICAR CAMBIAR ITERACION
+            print(DATABASE_DIR + "/"+ database_files[change_db])
+            datab.create_connection(DATABASE_DIR + "/"+ database_files[change_db]) #MODIFICAR CAMBIAR ITERACION
             for file in text_list:
                 datab.insert_file(file)
 

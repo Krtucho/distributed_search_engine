@@ -133,10 +133,10 @@ def convert_text_to_text_class(path, files_name: list):
 #if __name__ == '__main__':
        #PARA PROBAR LOS METODOS
     #current_dir = os.path.dirname(os.path.abspath(__file__))
-    #path =  os.path.join(current_dir, "databases/db4.db")
+    #path =  os.path.join(current_dir, "databases/db44.db")
     #path_txts =  os.path.join(current_dir, "txts")
     #
-    #files_name = ['document_12.txt', 'document_23.txt', 'document_34.txt']
+    #files_name = ['document_1.txt', 'document_2.txt', 'document_3.txt']
     #text_list = convert_text_to_text_class(path_txts, files_name)
     #datab = DataB()
     #datab.create_connection(path)
@@ -146,16 +146,24 @@ def convert_text_to_text_class(path, files_name: list):
     #textlist = datab.get_documents()
     #for t in textlist:
     #    print(t)
-    #query = text_list[2].author
-    #query_ID = f"SELECT ID FROM File WHERE File.ID = '{10}'"
+    #author = text_list[0].author
+    #query_ID = f"SELECT ID FROM File WHERE File.ID = '{0}'"
     #result_ID = datab.execute_read_query(query_ID)
-    #print("result ID ", result_ID)
+    #print("result ID 0 ", result_ID)
     #print("len ", len(result_ID))
-    #select_files = f"SELECT ID, Author FROM File WHERE File.Author = '{query}'"
-    #a = f"SELECT ID, Author FROM File "
-    #result = datab.execute_read_query(a)
+    #select_files = f"SELECT ID, Author FROM File WHERE File.Author = '{author}'"
+#
+    #title = 'experimental investigation'
+    #select_title = f"SELECT ID, Title FROM File"
+    #result = datab.execute_read_query(select_title)
     #print("RESULT ", result)
+    #lista_titles = []
     #for i in result:
+    #    if title in i[1]:
+    #        lista_titles.append(i)
     #    print("result[0]",i[0])
     #    print("result[1]",i[1])
     #    print()
+    #
+    #print("lista_titles ", lista_titles)
+    #
