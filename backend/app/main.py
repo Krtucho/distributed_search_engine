@@ -89,13 +89,13 @@ app = FastAPI()
 #ROXANA
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 lock = threading.Lock() 
-ports = [10002] #MODIFICAR CAMBIAR LISTA [10001,10002,10003]
+ports = [10001] #MODIFICAR CAMBIAR LISTA [10001,10002,10003]
 PATH_TXTS = os.path.join(CURRENT_DIR, "txts")
 #files_name = ['document_1.txt', 'document_2.txt', 'document_3.txt'] #LOs 3 servidores tendran los mismos docs
 DATABASE_DIR = os.path.join(CURRENT_DIR, "databases")
 database_files = ['db_1.db', 'db_2.db', 'db_3.db']
 database = DataB()
-change_db = 0
+change_db = 1
 server_ip = '0.0.0.0' #NECESITO SABER EL IP DE CADA SERVIDOR Y TENERLO EN UNA VARIABLE
 servers_list = {'0.0.0.0', '0.0.0.1', '0.0.0.2'} # NECESITO SABER EL TOTAL DE SERVIDORES DE LA RED
 n_doc = 9 #1400 # NUMERO TOTAL DE DOCUMENTOS DE LA RED
@@ -183,8 +183,8 @@ def send_notification(port, text: str, results_name, results_ranking): #ROXANA
         else:# El resultado que devolvio la peticion es el ranking de los posibles archivos
             for r_ranking in selected_result:
                 print("r_ranking ", r_ranking)
-                print("r_ranking[0] ", r_ranking[0])
-                print("r_ranking[1] ", r_ranking[1])
+                # print("r_ranking[0] ", r_ranking[0])
+                # print("r_ranking[1] ", r_ranking[1])
                 results_ranking.append(r_ranking)
 
 
@@ -235,7 +235,7 @@ def search_by_text(text: str): #ROXANA
     # Return Response
     # Retornamos el ranking general de todos los rankings combinados
     results_name_str = decorate_data(results_name)
-    results_ranking_str = decorate_data_rank(results_ranking)
+    results_ranking_str = decorate_data(results_ranking)
     return results_name_str, results_ranking_str
 
 def decorate_data(results): #ROXANA
@@ -243,26 +243,14 @@ def decorate_data(results): #ROXANA
     print("results ", results)
     final_string = {}
     for i, elem in enumerate(results):
+        print("*final_string ", final_string)
         print(f"i={i}, elem= {elem}")
         print("elem[0] ", elem[0])
         print("elem[1] ", elem[1])
         final_string['id'] = elem[0]
         final_string['name'] = elem[1]
         final_string["url"] = 'https://localhost:3000'
-    print("final string ", final_string)
-    return final_string
-
-
-def decorate_data_rank(ranking: list): 
-    print("ENTRO A DECORATE DATA")
-    print("results ", ranking)
-    final_string = {}
-    for i, elem in enumerate(ranking):
-        print(f"i={i}, elem= {elem}")
-        final_string['id'] = elem[0]
-        final_string['similarity'] = elem[1]
-        final_string['url'] = 'https://localhost:3000'
-    print("final string ", final_string)
+    print("/final string ", final_string)
     return final_string
 
 
@@ -300,9 +288,19 @@ def tf_idf(textt: str):
     ranking = vec_mod.run(textt)
     result = []
     
+    print("---------------------")
+    print("ranking", ranking)
+    print("-------------")
+
     for id, rank in ranking: #new_rank no esta definido. PONGO MOMENTANEAMENTE ranking
         db_query = f"SELECT ID, Title FROM File WHERE File.ID = '{str(id)}'"
-        result.append(database.execute_read_query(db_query))
+        for i in database.execute_read_query(db_query):
+            print("***** ", i)
+            result.append(i)
+    
+    print("---------------------")
+    print("result", result)
+    print("-------------")
 
     return result
     # pass # Paula
@@ -423,7 +421,7 @@ def search_file_in_db(text: str): #ROXANA
     matched_documents = match_by_name(text)
     name_selected = False 
     print("matched documents ", matched_documents)
-    if matched_documents == None:
+    if matched_documents == []:
         #Calcularel tf_idf #{"data": id}
         return [tf_idf(text),False] #El booleano: PARA SABER SI LO QUE DEVUELVE EL METODO ES QUE MATCHEO CON NOMBRE O CON EL RANKING
     else:

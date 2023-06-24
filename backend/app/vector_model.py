@@ -2,9 +2,15 @@ import re
 from math import log
 
 import nltk
-import numpy as np
 from nltk.corpus import stopwords, wordnet
 from nltk.stem.wordnet import WordNetLemmatizer
+
+# import nltk
+# nltk.data.path.append('backend/app/nltk_data')
+# nltk.data.path = ['nltk_data']
+# from nltk.corpus import stopwords
+# stop_words = stopwords.words('english')
+# from nltk.stem.wordnet import WordNetLemmatizer
 
 from database import Text
 from typing import List
@@ -155,7 +161,7 @@ class VectorModel:
         sim = []
 
         for doc in self.query_sim:
-            if self.query_sim[doc] > 0.4:
+            if self.query_sim[doc] > 0:
                 sim.append((doc, self.query_sim[doc]))
 
         rank = sorted(sim, key=lambda x: x[1], reverse=True)
@@ -191,4 +197,6 @@ class VectorModel:
 
 
     def normalize(self, text: str) -> list:
-        return [WordNetLemmatizer().lemmatize(token.lower()) for token in re.split(r'\W+', text) if token not in set(stopwords.words('english'))]
+        return [WordNetLemmatizer().lemmatize(token.lower()) for token in re.split(r'\W+', text) if token not in set(stopwords.words('english'))] 
+        
+        # return [WordNetLemmatizer().lemmatize(token.lower()) for token in re.split(r'\W+', text) if token not in set(stop_words)]
