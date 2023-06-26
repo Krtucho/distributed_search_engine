@@ -96,7 +96,7 @@ DATABASE_DIR = os.path.join(CURRENT_DIR, "databases")
 database_files = ['db_1.db', 'db_2.db', 'db_3.db']
 database = DataB()
 change_db = 1
-server_ip = '0.0.0.0' #NECESITO SABER EL IP DE CADA SERVIDOR Y TENERLO EN UNA VARIABLE
+server_ip = '0.0.0.1' #NECESITO SABER EL IP DE CADA SERVIDOR Y TENERLO EN UNA VARIABLE
 servers_list = {'0.0.0.0', '0.0.0.1', '0.0.0.2'} # NECESITO SABER EL TOTAL DE SERVIDORES DE LA RED
 n_doc = 9 #1400 # NUMERO TOTAL DE DOCUMENTOS DE LA RED
 # 499: greensite,a.l.
@@ -247,10 +247,23 @@ def decorate_data(results): #ROXANA
         print(f"i={i}, elem= {elem}")
         print("elem[0] ", elem[0])
         print("elem[1] ", elem[1])
-        final_string['id'] = elem[0]
-        final_string['name'] = elem[1]
-        final_string["url"] = 'https://localhost:3000'
-    print("/final string ", final_string)
+        final_string[f"id_{i}"] = elem[0]
+        final_string[f"name_{i}"] = elem[1]
+        final_string[f"url_{i}"] = 'https://localhost:3000'
+    print("final string ", final_string)
+    return final_string
+
+
+def decorate_data_rank(ranking: list): 
+    print("ENTRO A DECORATE DATA")
+    print("results ", ranking)
+    final_string = {}
+    for i, elem in enumerate(ranking):
+        print(f"i={i}, elem= {elem}")
+        final_string[f"id__{i}"] = elem[0]
+        final_string[f"similarity__{i}"] = elem[1]
+        final_string[f"url__{i}"] = 'https://localhost:3000'
+    print("final string ", final_string)
     return final_string
 
 
