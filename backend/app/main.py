@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Optional, List
 from math import floor
+import copy
 
 import requests # Para realizar peticiones a otros servers y descargar archivos
 
@@ -98,7 +99,7 @@ database = DataB()
 change_db = 1
 server_ip = '0.0.0.1' #NECESITO SABER EL IP DE CADA SERVIDOR Y TENERLO EN UNA VARIABLE
 servers_list = {'0.0.0.0', '0.0.0.1', '0.0.0.2'} # NECESITO SABER EL TOTAL DE SERVIDORES DE LA RED
-n_doc = 9 #1400 # NUMERO TOTAL DE DOCUMENTOS DE LA RED
+n_doc = 10 #1400 # NUMERO TOTAL DE DOCUMENTOS DE LA RED
 # 499: greensite,a.l.
 # 348: van driest,e.r.
 # 139: mcmillan,f.a.
@@ -147,17 +148,15 @@ files = [
 # def search_file(id):
 #     return [file["file"] for file in files if file["id"] == id]
 
-def process_results(result):
-    pass
 
-def send_notification(port, text: str, results_name, results_ranking): #ROXANA
+# Si notification_type = True  => Se refiere a buscar archivos por su nombre o ranking
+# Si notification_type = False  => Se refiere a devolver archivos para download
+def send_notification(server:str, results_name, results_ranking, notification_type = True): #ROXANA
     with lock:
         print("ENTRO EN SEND NOTIFICATION")
         print("Hilo en ejecución: {}".format(threading.current_thread().name))
-        print(clusters[0])
-        server = f'http://{clusters[0]}:{port}/api/files/search/{text}'
-        print(server)
-
+        print("clusters[0] = ",clusters[0])
+        print("server = ", server)
         result = requests.get(server, verify=False)
          
         print("\R:")
@@ -169,26 +168,58 @@ def send_notification(port, text: str, results_name, results_ranking): #ROXANA
 
         selected_list = result.json()
         print("selected list ", selected_list)
-        selected_name = selected_list[1]
-        selected_result = selected_list[0]
 
-        print("selected_name ", selected_name)
-        if selected_name:# El resultado que devolvio la peticion es el nombre del archivo
-            for r_name in selected_result:
-                print("r_name ", r_name)
-                print("r_name[0] ", r_name[0])
-                print("r_name[1] ", r_name[1])
-                results_name.append(r_name) #results.extend(r)  # Add matched documents to the shared list
-            print("results in send_notification ", results_name)
-        else:# El resultado que devolvio la peticion es el ranking de los posibles archivos
-            for r_ranking in selected_result:
-                print("r_ranking ", r_ranking)
-                # print("r_ranking[0] ", r_ranking[0])
-                # print("r_ranking[1] ", r_ranking[1])
-                results_ranking.append(r_ranking)
+        if notification_type: #REQUEST SEARCH
+            selected_name = selected_list[1]
+            selected_result = selected_list[0]
+            print("selected_name ", selected_name)
+            if selected_name:# El resultado que devolvio la peticion es el nombre del archivo
+                for r_name in selected_result:
+                    print("r_name ", r_name)
+                    print("r_name[0] ", r_name[0])
+                    print("r_name[1] ", r_name[1])
+                    results_name.append(r_name) #results.extend(r)  # Add matched documents to the shared list
+                print("results in send_notification ", results_name)
+            else:# El resultado que devolvio la peticion es el ranking de los posibles archivos
+                for r_ranking in selected_result:
+                    print("r_ranking ", r_ranking)
+                    print("r_ranking[0] ", r_ranking[0])
+                    print("r_ranking[1] ", r_ranking[1])
+                    results_ranking.append(r_ranking)
+        else: #REQUEST DOWNLOAD
+            print("SENDIND REQUEST TO DOWNLOAD A FILE")
+            print("selected_list[0] ", selected_list[0])
+            print("selected_list[1] ", selected_list[1])
+            results_name.append(selected_list)
+        
+
+def search_to_download(number: str): #ROXANA
+    print("ENTRO EN SEARCH TO DOWNLOAD")
+    print(number)
+    threading_list = []
+    results_files_download = [] # List with the ranking and query documents results
+    for i, port in enumerate(ports): # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
+        server = f'http://{clusters[0]}:{port}/api/download/{number}'
+        t = threading.Thread(target=send_notification, args=(server, results_files_download, [], False), name="Hilo {}".format(i))
+        threading_list.append(t)
+        print("T.START")
+        t.start()
+        
+    for t in threading_list:
+        print("T.JOIN")
+        t.join()
+
+    print("results_files_download ", results_files_download)
+    print("len(results_files_download)=", len(results_files_download))
+    response = None
+    for result in results_files_download:
+        if type(result) != bool:
+            response = copy.copy(result)
+            break
+    print("response ", response)
+    return response
 
 
-    
 def search_by_text(text: str): #ROXANA
     print("ENTRO EN SEARCH BY TEXT")
     print(text)
@@ -199,7 +230,8 @@ def search_by_text(text: str): #ROXANA
     # Search text in every server
     # TODO: Paralelizar peticiones a todos los servidores para pedirles sus rankings. https://docs.python.org/es/3/library/multiprocessing.html
     for i, port in enumerate(ports): # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
-        t = threading.Thread(target=send_notification, args=(port, text, results_name, results_ranking), name="Hilo {}".format(i))
+        server = f'http://{clusters[0]}:{port}/api/files/search/{text}'
+        t = threading.Thread(target=send_notification, args=(server, results_name, results_ranking), name="Hilo {}".format(i))
         threading_list.append(t)
         print("T.START")
         t.start()
@@ -326,6 +358,8 @@ def assign_documents(index): #ROXANA
     files_list = []
     start = index*floor(n_doc/len(servers_list))
     end = (index + 1)*floor(n_doc/len(servers_list))
+    print("start ", start)
+    print("end ", end)
     contenido = os.listdir(PATH_TXTS)
     for doc in contenido[start:end]:
         print("doc ", doc)
@@ -341,7 +375,8 @@ def check_database(number):
 # Asumo que conozco los IPs de cada servidor y la cantidad de servidores 
 def init_servers(datab): #ROXANA
     print("INIT SERVERS")
-    for i, s in enumerate(servers_list):
+    print("len(servers_list ", len(servers_list))
+    for i, s in enumerate(sorted(servers_list)):
         print("index ", i)
         print(f"s == server_ip: {s}=={server_ip}")
         if s == server_ip:
@@ -421,7 +456,7 @@ def index():
 @app.get('/files/search/{text}') #ROXANA
 def show_file(text: str):
     print("ENTRO EN SHOW FILE")
-    return search_by_text(text)#{"data": id}
+    return search_by_text(text)#{"data": id} #DUDA ESPERAR A RESPUESTA DE CARLOS EN EL GRUPO
 
 # Server
 # Este es el que llama al TF-IDF
@@ -432,7 +467,6 @@ def search_file_in_db(text: str): #ROXANA
     #datab = DataB() #crear una nueva database en cada hilo
     #init_servers(datab)
     matched_documents = match_by_name(text)
-    name_selected = False 
     print("matched documents ", matched_documents)
     if matched_documents == []:
         #Calcularel tf_idf #{"data": id}
@@ -647,36 +681,48 @@ def get_file(name_file: str):
 def download_file(number: str):
     print("ENTRO EN DOWNLOAD FILE")
     print("number ", number)
-    doc = "document_" +number +".txt"
-    file_path = Path(os.path.join(PATH_TXTS,doc))
+    file_name = "document_" +number +".txt"
+    response = find_download(number) # VA A BUSCAR SI EL CURRENT SERVER TIENE EL ARCHIVO
+    print("type(response) = ",type(response))
+    print("type(response) == bool ", type(response) == bool)
+    if type(response) == bool: #SI NO SE ENCONTRO EL ARCHIVO
+        response = search_to_download(number) # SE LO PIDE A LOS DEMAS SERVERS
+        if response is None:
+            response = {"error": f"File '{file_name}' not found in the database."}
+    
+    print("response in download_file ", response)
+    
+    file_response = FileResponse(response[0], media_type="application/octet-stream", filename=response[1])
+    print("type(file_response) ", type(file_response))
+    return file_response 
 
-    print("filepath ", filepath)
+def find_download(number:str):
+    print("ENTRO EN FIND DOWNLOAD")
+    print("number ", number)
+    file_name = "document_" +number +".txt"
+    file_path = Path(os.path.join(PATH_TXTS,file_name))
+
+    print("file_path ", file_path)
     if not file_path.exists(): #Comprueba si el archivo existe en la carpeta txts
-        return {"error": f"File '{doc}' not found in the folder."}
+        return {"error": f"File '{file_name}' not found in the folder."}
     
     #Comprobar si el archivo esta en la base de datos del servidor
     result_ID = check_database(number)
-    
+    print("len(result_ID)=",len(result_ID))
     if len(result_ID) > 0:
-        response = FileResponse(file_path,media_type="application/octet-stream", filename=doc)
+        response = [file_path,file_name]
     else:
-        response = {"error": f"File '{doc}' not found in the database."}
-    return response 
+        response = False
+    print("response en FIND DOWNLOAD ", response)
+    return response
+
 
 # Server
 @router.get("/api/download/{number}")
 def download_file_api(number: str):
     print("ENTRO EN API DOWNLOAD")
-    filename = f"document_{number}.txt"
-    print("FILENAME ", filename)
-
-    #Comprobar si el archivo esta en la base de datos del servidor
-    result_ID = check_database(number)
-    if len(result_ID) > 0:
-        response = FileResponse(getcwd() + "/txts" + "/"+filename, media_type="application/octet-stream", filename=filename)
-    else:
-        response = {"error": f"File '{filename}' not found in the database."}
-    return response
+    return find_download(number)
+    
     #return FileResponse(getcwd() + "/downloads" + "/"+filename, media_type="application/octet-stream", filename=filename)
 
 @router.delete("/delete/{name_file}")
