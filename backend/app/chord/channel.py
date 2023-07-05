@@ -1,3 +1,4 @@
+import ipaddress
 import random
 
 class Address:
@@ -23,6 +24,11 @@ class Address:
 			return Address(address["ip"], address["port"])
 		except Exception as e:
 			print(e)
+
+	@staticmethod
+	def get_ips_in_range(ip_address, network_bits):
+		ip_network = ipaddress.IPv4Network(f"{ip_address}/{network_bits}", strict=False)
+		return [Address(str(ip), 80) for ip in ip_network.hosts()]
 
 class PubMessage:
 	def __init__(self, address:Address, msg) -> None:
