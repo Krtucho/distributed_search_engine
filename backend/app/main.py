@@ -43,8 +43,8 @@ servers:List[Address] = get_servers(local)
 clusters = ['localhost']
 
 # Chord
-first_server_address_ip = servers[0].ip if len(servers) > 0 else 'localhost' # Correrlo local
-first_server_address_port = 8000  # Correrlo local
+first_server_address_ip = 'localhost' # Correrlo local 
+first_server_address_port = 10000  # Correrlo local 10000
 
 if local:
     first_server_address_ip = 'localhost' # Correrlo local
@@ -54,11 +54,18 @@ if local:
 stopped = False
 
 server = 'localhost'
-port = 10000 # Correrlo local
+port = 10001 # Correrlo local
 
 if not local:
     server = str(os.environ.get('IP')) # Correrlo con Docker
     port = int(os.environ.get('PORT')) # Correrlo con Docker
+
+#if local: #ROXANA
+#    server = str(os.environ.get('IP')) # Correrlo local
+#    port = int(os.environ.get('PORT')) # Correrlo local
+
+print("SERVER IP ROXANA = ", server)#ROXANA
+print("PORT ROXANA = ", port)
 
 # print(port)
 TIMEOUT = 20
@@ -80,16 +87,29 @@ if not local:
 app = FastAPI()
 
 #ROXANA
-current_dir = os.path.dirname(os.path.abspath(__file__))
-lock = threading.Lock() 
-ports = [10001, 10002] #MODIFICAR CAMBIAR LISTA [10001,10002,10003]
-path_txts = os.path.join(current_dir, "txts")
-files_name = ['document_1.txt', 'document_2.txt', 'document_3.txt'] #LOs 3 servidores tendran los mismos docs
-DATABASE_DIR = os.path.join(current_dir, "databases")
-database_files = ['db1.db', 'db2.db', 'db3.db']
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PATH_TXTS = os.path.join(CURRENT_DIR, "txts")
+DATABASE_DIR = os.path.join(CURRENT_DIR, "databases")
+lock = threading.Lock()
 database = DataB()
-server_ip = '0.0.0.0' #NECESITO SABER EL IP DE CADA SERVIDOR Y TENERLO EN UNA VARIABLE
-number_servers = 10 # NECESITO SABER EL TOTAL DE SERVIDORES DE LA RED
+my_port = 10002
+ports_list = [] #LISTA DE PUERTOS DE CADA NUEVO SERVIDOR DE LA RED
+servers_ID_list = [] # NECESITO SABER EL TOTAL DE SERVIDORES DE LA RED y su ID
+servers_IP_list = [] # con su IP
+
+database_files = ['db_1.db', 'db_2.db', 'db_3.db']
+change_db = 1
+
+n_doc = 10 #1400 # NUMERO TOTAL DE DOCUMENTOS DE LA RED
+# 499: greensite,a.l.
+# 348: van driest,e.r.
+# 139: mcmillan,f.a.
+
+
+############ SRI ############
+vec_mod = VectorModel()
+#############################
+
 
 # Configuración de CORS
 origins = [
@@ -143,9 +163,61 @@ def send_notification(port, text: str, results): #ROXANA
         print(r.content)
         print(r.text)
         print("R/")
-        results.extend(r)  # Add matched documents to the shared list
-    
-    
+
+        selected_list = result.json()
+        print("selected list ", selected_list)
+
+        if notification_type: #REQUEST SEARCH
+            selected_name = selected_list[1]
+            selected_result = selected_list[0]
+            print("selected_name ", selected_name)
+            if selected_name:# El resultado que devolvio la peticion es el nombre del archivo
+                for r_name in selected_result:
+                    print("r_name ", r_name)
+                    print("r_name[0] ", r_name[0])
+                    print("r_name[1] ", r_name[1])
+                    results_name.append(r_name) #results.extend(r)  # Add matched documents to the shared list
+                print("results in send_notification ", results_name)
+            else:# El resultado que devolvio la peticion es el ranking de los posibles archivos
+                for r_ranking in selected_result:
+                    print("r_ranking ", r_ranking)
+                    print("r_ranking[0] ", r_ranking[0])
+                    print("r_ranking[1] ", r_ranking[1])
+                    results_ranking.append(r_ranking)
+        else: #REQUEST DOWNLOAD
+            print("SENDIND REQUEST TO DOWNLOAD A FILE")
+            print("selected_list[0] ", selected_list[0])
+            print("selected_list[1] ", selected_list[1])
+            results_name.append(selected_list)
+        
+
+def search_to_download(number: str): #ROXANA
+    print("ENTRO EN SEARCH TO DOWNLOAD")
+    print(number)
+    threading_list = []
+    results_files_download = [] # List with the ranking and query documents results
+    for i, port in enumerate(ports_list): # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
+        server = f'http://{clusters[0]}:{port}/api/download/{number}'
+        t = threading.Thread(target=send_notification, args=(server, results_files_download, [], False), name="Hilo {}".format(i))
+        threading_list.append(t)
+        print("T.START")
+        t.start()
+        
+    for t in threading_list:
+        print("T.JOIN")
+        t.join()
+
+    print("results_files_download ", results_files_download)
+    print("len(results_files_download)=", len(results_files_download))
+    response = None
+    for result in results_files_download:
+        if type(result) != bool:
+            response = copy.copy(result)
+            break
+    print("response ", response)
+    return response
+
+
 def search_by_text(text: str): #ROXANA
     print("ENTRO EN SEARCH BY TEXT")
     print(text)
@@ -155,8 +227,9 @@ def search_by_text(text: str): #ROXANA
     # Construir ranking a partir de cada listado de archivos recibidos gracias al tf_idf
     # Search text in every server
     # TODO: Paralelizar peticiones a todos los servidores para pedirles sus rankings. https://docs.python.org/es/3/library/multiprocessing.html
-    for i, port in enumerate(ports): # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
-        t = threading.Thread(target=send_notification, args=(port, text, results), name="Hilo {}".format(i))
+    for i, port in enumerate(ports_list): # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
+        server = f'http://{clusters[0]}:{port}/api/files/search/{text}'
+        t = threading.Thread(target=send_notification, args=(server, results_name, results_ranking), name="Hilo {}".format(i))
         threading_list.append(t)
         print("T.START")
         t.start()
@@ -193,16 +266,72 @@ def match_by_name(text:str, datab): #ROXANA
     print("RESULTADO AUTHOR",result_2)
     return result_2 #,result_1
 
+    return result
+    # pass # Paula
+###################
+
+
+def check_database(number):
+    query = f"SELECT ID FROM File WHERE File.ID = '{number}'"
+    result_ID = database.execute_read_query(query)
+    return result_ID
 
 # Este metodo carga la base de datos del server al ser levantado este
 # Asumo que conozco los IPs de cada servidor y la cantidad de servidores 
-def init_servers(datab): #ROXANA
-    print("INIT SERVERS")
-    text_list = convert_text_to_text_class(path_txts,files_name)
+#def init_servers(datab): #ROXANA
+#    print("INIT SERVERS")
+#    print("len(servers_list ", len(servers_list))
+#    for i, s in enumerate(sorted(servers_list)):
+#        print("index ", i)
+#        print(f"s == server_ip: {s}=={server_ip}")
+#        if s == server_ip:
+#            files_list = assign_documents(i)
+#            print("files_list ", files_list)
+#            print("PATH_TXTS ", PATH_TXTS)
+#            text_list = convert_text_to_text_class(PATH_TXTS,files_list)
+#            #A cada servidor le toca un archivo.db que se asigna en dependencia de su puerto
+#            print(DATABASE_DIR + "/"+ database_files[change_db])
+#            datab.create_connection(DATABASE_DIR + "/"+ database_files[change_db]) #MODIFICAR CAMBIAR ITERACION
+#            for file in text_list:
+#                datab.insert_file(file)
+#
+#            ######### SRI #########
+#            vec_mod.doc_terms_data(text_list) # se le pasa la lista de archivos que se le pasa a la base de datos de ese server
+#                                              # aqui empieza a calc os tf idf
+#            # print(vec_mod.doc_terms)
+#            #######################
+#
+#    # node.run() #CARLOS
+#    print("Node Run")
+#    # t1 = threading.Thread(target=node.run)
+#    t2 = threading.Thread(target=chord_replication_routine)
+#
+#    # t1.start()
+#    t2.start()
+#
+#    print("SALIO DEL INIT")
+    
+#asignar los documentos a cada server segun el orden en la lista
+def assign_documents(start, end, datab): #ROXANA
+    print("ENTRO AL assign_documents")
+    docs_to_add = []
+    #toma los documentos desde el ultimo ID de server hasta el propio ID del nuevo server incluyendolo
+    for  i in range(start,end):
+        docs_to_add.append(f"document_{i}.txt")
+
+    print("docs_to_add = ", docs_to_add)
+    text_list = convert_text_to_text_class(PATH_TXTS,docs_to_add)
     #A cada servidor le toca un archivo.db que se asigna en dependencia de su puerto
-    datab.create_connection(DATABASE_DIR+database_files[2]) #MODIFICAR CAMBIAR ITERACION
+    print(DATABASE_DIR + "/"+ database_files[change_db])
+    datab.create_connection(DATABASE_DIR + "/"+ database_files[change_db]) #MODIFICAR CAMBIAR ITERACION
     for file in text_list:
         datab.insert_file(file)
+    
+    ######### SRI #########
+    vec_mod.doc_terms_data(text_list) # se le pasa la lista de archivos que se le pasa a la base de datos de ese server
+                                      # aqui empieza a calc os tf idf
+    # print(vec_mod.doc_terms)
+    #######################
 
     # node.run() #CARLOS
     print("Node Run")
@@ -211,8 +340,44 @@ def init_servers(datab): #ROXANA
 
     # t1.start()
     t2.start()
+    print("SALIO DEL assign_documents")
 
-    print("SALIO DEL INIT")
+#En la lista de servers_list inicialmente esta vacia y a medida que se conectan en la red los nuevos servers
+# es q se agregan a la lista y se le asignan nuevos documentos.Para esto se tiene en cuenta el ID de los
+# documentos y el ID de los servers.
+def init_servers(datab):
+    print("ENTRO A init_servers")
+    miembros = node.chan.osmembers
+    n = len(miembros.keys())
+    print(miembros)
+    newserver_id = int(list(miembros.keys())[n - 1])
+    print("newserver_id = ", newserver_id)
+    miembros = sorted(miembros.items()) #para ordenar los servers por ID
+    
+    print("miembros sorted ", miembros)
+    #Actualizo las listas del nuevo nodo
+    for i in range(n):
+        print("key = ", miembros[i][0])
+        if int(miembros[i][0]) == newserver_id: #Solo entra 1 vez
+            start = 1
+            if i > 0: 
+                start = miembros[i - 1][0] + 1
+                print("prev id = ", start)
+            # Annadir a la BD del nuevo server los docs que le tocan
+            assign_documents(start,newserver_id + 1, datab)
+            # Quitar a la BD del sucesor del nuevo server los docs que le tocan al nuevo a traves de un endpoint
+            if i < n - 1:
+                succ_ip = miembros[i + 1][1].ip
+                succ_port = miembros[i + 1][1].port
+                server_str = f'http://{succ_ip}:{succ_port}/api/remove_doc/{start}_{newserver_id + 1}'
+                requests.get(server_str, verify=False)
+
+        servers_ID_list.append(int(miembros[i][0]))
+        servers_IP_list.append(miembros[i][1].ip) 
+        ports_list.append(miembros[i][1].port) #  my_port
+        print("servers_ID_list ", servers_ID_list)
+        print("servers_IP_list ", servers_IP_list)
+        print("ports_list ", ports_list)
 
 ######## SRI ########
 vm = VectorModel()
@@ -398,6 +563,13 @@ def post_data(files: FilesModel):
 def verify_data(address: AddressModel):
     return node.check_pred_data(address.node_id, Address(address.ip, address.port))#return {"osmembers":channel.osmembers, "nBits":channel.nBits, "MAXPROC":channel.MAXPROC }#search_by_text(text)#{"data": id}
 
+@app.delete('/api/remove_doc/{prev_id}_{newserver_id}') # ROXANA
+def remove_doc_api(prev_id:int, newserver_id:int):
+    print("ENTRO A REMOVE DOC API")
+    for i in range(prev_id, newserver_id):
+        print("remove doc = ", {i})
+        database.remove_file(i)
+    
 
 
 def chord_replication_routine():
@@ -476,8 +648,7 @@ def chord_replication_routine():
             time.sleep(TIMEOUT)
     except KeyboardInterrupt as e:
         print("Stopping Chord Routine Thread...")
-        stopped = True
-    
+        stopped = Tru
 
 # Uploading Files
 from fastapi import APIRouter, UploadFile, File, Form
@@ -542,3 +713,4 @@ def delete_file(folder_name: str = Form(...)):
 app.include_router(router)
 print("EMPEZAMOS")
 init_servers(database)
+#redistribute_data(database)

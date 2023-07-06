@@ -28,7 +28,12 @@ class DataB:
         (?, ?, ?);
         """
         self.execute_query(create_users, text_file)
-    
+
+    def remove_file(self, id_doc: int):
+        print("ENTRE A REMOVE FILE")
+        delete_file = f"""DELETE FROM File WHERE ID = {id_doc};"""
+        self.execute_query(delete_file, "")
+
     def get_documents(self):
         docs = []
         query = "SELECT * FROM File;"
@@ -97,8 +102,13 @@ class DataB:
         print("ENtrO EN EXECUTE QUERY")
         try:
             if text_file != "":
+<<<<<<< Updated upstream
                 self.cursor.execute(query, (text_file.title, text_file.author, text_file.body))
             else: 
+=======
+                self.cursor.execute(query, (text_file.id, text_file.title, text_file.author, text_file.body))
+            else:
+>>>>>>> Stashed changes
                 self.cursor.execute(query)
             self.connection.commit()
             print("Query executed successfully")
