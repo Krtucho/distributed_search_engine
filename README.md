@@ -51,6 +51,8 @@ Esto anterior para crear la imagen y luego la corremos:
 >sudo docker run -it --rm --name backend --network $fastapi-quasar --ip $gateway$ip -e FIRST_SERVER=ip_de_server_principal -e IP=$gateway$ip -e PORT=8000 -e LOCAL=False fastapi-files
 ```
 
+sudo docker run -it --rm --name backend --network $fastapi-quasar --ip $gateway$ip -e FIRST_SERVER=ip_de_server_principal -e IP=$gateway$ip -e PORT=8000 -e LOCAL=False -v $path_donde_tengan_la_carpeta_nltk_data>:/usr/share/nltk_data fastapi-files
+
 ## Backend
 
 ```bash
@@ -61,7 +63,7 @@ Esto anterior para crear la imagen y luego la corremos:
 >sudo docker run -d --name backend fastapi-files
 
 >sudo docker run -it --rm --name backend --network $fastapi-quasar --ip $gateway$ip -e FIRST_SERVER=ip_de_server_principal -e IP=$gateway$ip -e PORT=8000 -e LOCAL=False fastapi-files
-```
+``
 
 ## Frontend
 
