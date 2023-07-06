@@ -1,3 +1,4 @@
+import ipaddress
 import random
 import threading
 
@@ -18,6 +19,9 @@ class Address:
 	def __repr__(self) -> str:
 		return f"ip:{self.ip}, port:{self.port}"
 	
+	def __hash__(self):
+		return hash((self.ip, self.port))
+	
 	@staticmethod
 	def extract_ip_port(address):
 		if isinstance(address, Address):
@@ -26,6 +30,11 @@ class Address:
 			return Address(address["ip"], address["port"])
 		except Exception as e:
 			print(e)
+
+	@staticmethod
+	def get_ips_in_range(ip_address, network_bits=24):
+		ip_network = ipaddress.IPv4Network(f"{ip_address}/{network_bits}", strict=False)
+		return [Address(str(ip), 80) for ip in ip_network.hosts()]
 
 class PubMessage:
 	def __init__(self, address:Address, msg) -> None:
@@ -37,7 +46,7 @@ class TransportLayer():
 		hosts:list[Address]= []
 
 class Channel():
-	def __init__(self, nBits=5, hostIP='redis', portNo=6379, address=Address("localhost", 8000)):
+	def __init__(self, nBits=5, hostIP='redis', portNo=6379, address=Address("127.0.0.1", 8000)):
 		# self.channel   = 5#redis.StrictRedis(host=hostIP, port=portNo, db=0)
 		self.osmembers:dict = {}
 		self.nBits     = nBits
