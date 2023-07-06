@@ -62,12 +62,14 @@ if not local:
 stopped = False
 
 server = 'localhost'
-port = 10002 # Correrlo local
+port = 10000 # Correrlo local
 
 if not local:
     server = str(os.environ.get('IP')) # Correrlo con Docker
     port = int(os.environ.get('PORT')) # Correrlo con Docker
 
+print("ROXANA SERVER = ", server)
+print("ROXANA PORT = ", port)
 
 TIMEOUT = 20
 if not local:
