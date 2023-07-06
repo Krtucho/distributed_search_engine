@@ -21,9 +21,9 @@ from logs.logs_format import *
 from vector_model import VectorModel
 from pathlib import Path
 import database
-# import os
 #############
 
+import datetime
 
 # Logs
 from logs.logs_format import *
@@ -104,11 +104,9 @@ n_doc = 10 #1400 # NUMERO TOTAL DE DOCUMENTOS DE LA RED
 # 348: van driest,e.r.
 # 139: mcmillan,f.a.
 
-
 ############ SRI ############
 vec_mod = VectorModel()
 #############################
-
 
 # Configuración de CORS
 origins = [
@@ -246,28 +244,11 @@ def search_by_text(text: str): #ROXANA
     # Luego de esperar cierta cantidad de segundos por los rankings pasamos a hacer un ranking general de todo lo q nos llego
     # TODO: Si alguna pc se demora mucho en devolver el ranking, pasamos a preguntarle a algun intregrante de su cluster que es lo que sucede
     
-    # ranking_ord = sorted(ranking, key=lambda x: x[1], reverse=True)
-
-    # visited = set()
-    # new_rank = []
-
-    # for t in ranking_ord:
-    #     if t[0] not in visited:
-    #         new_rank.append(t)
-    #         visited.add(t[0])
-    
-    # result = []
-
-    # for id, rank in new_rank:
-    #     db_query = f"SELECT * FROM File WHERE File.ID = '{str(id)}'"
-    #     result.append(database.execute_read_query(db_query))
-    
-    # return result
-
     # Return Response
     # Retornamos el ranking general de todos los rankings combinados
     results_name_str = decorate_data(results_name)
     results_ranking_str = decorate_data(results_ranking)
+
     return results_name_str, results_ranking_str
 
 def decorate_data(results): #ROXANA
@@ -281,7 +262,8 @@ def decorate_data(results): #ROXANA
         print("elem[1] ", elem[1])
         final_string[f"id_{i}"] = elem[0]
         final_string[f"name_{i}"] = elem[1]
-        final_string[f"url_{i}"] = 'https://localhost:3000'
+        # final_string[f"url__{i}"] = 'https://localhost:3000'
+        final_string[f"url_{i}"] = f'https://{server}:{port}'
     print("final string ", final_string)
     return final_string
 
@@ -294,7 +276,8 @@ def decorate_data_rank(ranking: list):
         print(f"i={i}, elem= {elem}")
         final_string[f"id__{i}"] = elem[0]
         final_string[f"similarity__{i}"] = elem[1]
-        final_string[f"url__{i}"] = 'https://localhost:3000'
+        # final_string[f"url__{i}"] = 'https://localhost:3000'
+        final_string[f"url_{i}"] = f'https://{server}:{port}'
     print("final string ", final_string)
     return final_string
 
@@ -403,6 +386,10 @@ def init_servers(datab): #ROXANA
 
     # t1.start()
     t2.start()
+
+    # coord
+    t3 = threading.Thread(target=check_alive)
+    t3.start()
 
     print("SALIO DEL INIT")
 
@@ -639,9 +626,6 @@ def chord_replication_routine():
             node.recomputeFingerTable() #-
             print("FT", node.FT)
             # print('FT[','%04d'%node.nodeID,']: ',['%04d' % k for k in node.FT]) #- 
-            
-            if node.is_leader:
-                node.check_live_nodes()
 
             print_info(node)
 
@@ -652,6 +636,19 @@ def chord_replication_routine():
         print("Stopping Chord Routine Thread...")
         stopped = True
     
+
+def check_alive():
+    stopped = False
+    try:
+        while not stopped:
+            if node.is_leader and datetime.datetime.now().time().minute/5 == 0:
+                # print(node.clock)
+                print("-------------------------------Check alive-----------------------------")
+                node.check_live_nodes()
+                # time.sleep(10)
+    except KeyboardInterrupt as e:
+        stopped = True
+
 
 # Uploading Files
 from fastapi import APIRouter, UploadFile, File, Form

@@ -1,4 +1,7 @@
 import random
+import threading
+
+lock = threading.Lock() 
 
 class Address:
 	def __init__(self, ip, port) -> None:
@@ -61,19 +64,31 @@ class Channel():
 		self.osmembers.pop(node_id)
 
 	def join(self, subgroup, address, port):
+		with lock:
+			# members = self.channel.smembers('members')
+			newpid = random.choice(list(set([str(i) for i in range(self.MAXPROC)]) - self.get_members()))
+			# if len(members) > 0:
+			# 	xchan = [[str(newpid), other] for other in members] + [[other, str(newpid)] for other in members]
+			# 	for xc in xchan:
+			# 		self.channel.rpush('xchan',pickle.dumps(xc))
+			# Coordination...
+			# self.channel.sadd('members',str(newpid))
+			# self.channel.sadd(subgroup, str(newpid))
+			self.osmembers[newpid] = Address(address, port)
+			return str(newpid)
+		
 		# members = self.channel.smembers('members')
-		newpid = random.choice(list(set([str(i) for i in range(self.MAXPROC)]) - self.get_members()))
+		# newpid = random.choice(list(set([str(i) for i in range(self.MAXPROC)]) - self.get_members()))
 		# if len(members) > 0:
 		# 	xchan = [[str(newpid), other] for other in members] + [[other, str(newpid)] for other in members]
 		# 	for xc in xchan:
 		# 		self.channel.rpush('xchan',pickle.dumps(xc))
 		# Coordination...
-        # self.channel.sadd('members',str(newpid))
+		# self.channel.sadd('members',str(newpid))
 		# self.channel.sadd(subgroup, str(newpid))
-		self.osmembers[newpid] = Address(address, port)
-		return str(newpid)
-    
-    
+		# self.osmembers[newpid] = Address(address, port)
+		# return str(newpid)
+
 	def publish(self, caller, dst, message):
 		# print("On publish method", )
 		address = Address.extract_ip_port(self.osmembers[dst])
