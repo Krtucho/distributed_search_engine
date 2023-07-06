@@ -23,9 +23,9 @@ class DataB:
     def insert_file(self, text_file: Text):     
         print("ENTRO EN INSERT FILE")
         create_users = """INSERT INTO
-        File(Title, Author, Body)
+        File(ID,Title, Author, Body)
         VALUES
-        (?, ?, ?);
+        (?, ?, ?, ?);
         """
         self.execute_query(create_users, text_file)
 
@@ -69,7 +69,7 @@ class DataB:
             self.datab = path
             create_files_table = '''
                 CREATE TABLE IF NOT EXISTS File (
-                    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ID INTEGER PRIMARY KEY ,
                     Title TEXT NOT NULL UNIQUE,
                     Author TEXT,
                     Body TEXT NOT NULL
@@ -102,13 +102,8 @@ class DataB:
         print("ENtrO EN EXECUTE QUERY")
         try:
             if text_file != "":
-<<<<<<< Updated upstream
-                self.cursor.execute(query, (text_file.title, text_file.author, text_file.body))
-            else: 
-=======
                 self.cursor.execute(query, (text_file.id, text_file.title, text_file.author, text_file.body))
             else:
->>>>>>> Stashed changes
                 self.cursor.execute(query)
             self.connection.commit()
             print("Query executed successfully")
@@ -141,23 +136,39 @@ def convert_text_to_text_class(path, files_name: list):
     return text_list
 
 #if __name__ == '__main__':
-#       #PARA PROBAR LOS METODOS
-#    current_dir = os.path.dirname(os.path.abspath(__file__))
-#    path =  os.path.join(current_dir, "databases/db4.db")
-#    path_txts =  os.path.join(current_dir, "txts")
-#    
-#    files_name = ['document_1.txt', 'document_2.txt', 'document_3.txt']
-#    text_list = convert_text_to_text_class(path_txts, files_name)
-#    datab = DataB()
-#    datab.create_connection(path)
-#    for text in text_list:
-#        datab.insert_file(text)
-#    
-#    textlist = datab.get_documents()
-#    for t in textlist:
-#        print(t)
-#    query = text_list[2].author
-#    select_files = f"SELECT Author FROM File WHERE File.Author = '{query}'"
-#    a = f"SELECT Author FROM File "
-#    result = datab.execute_read_query(a)
-#    print("RESULT ", result)
+       #PARA PROBAR LOS METODOS
+    #current_dir = os.path.dirname(os.path.abspath(__file__))
+    #path =  os.path.join(current_dir, "databases/db44.db")
+    #path_txts =  os.path.join(current_dir, "txts")
+    #
+    #files_name = ['document_1.txt', 'document_2.txt', 'document_3.txt']
+    #text_list = convert_text_to_text_class(path_txts, files_name)
+    #datab = DataB()
+    #datab.create_connection(path)
+    #for text in text_list:
+    #    datab.insert_file(text)
+    #
+    #textlist = datab.get_documents()
+    #for t in textlist:
+    #    print(t)
+    #author = text_list[0].author
+    #query_ID = f"SELECT ID FROM File WHERE File.ID = '{0}'"
+    #result_ID = datab.execute_read_query(query_ID)
+    #print("result ID 0 ", result_ID)
+    #print("len ", len(result_ID))
+    #select_files = f"SELECT ID, Author FROM File WHERE File.Author = '{author}'"
+#
+    #title = 'experimental investigation'
+    #select_title = f"SELECT ID, Title FROM File"
+    #result = datab.execute_read_query(select_title)
+    #print("RESULT ", result)
+    #lista_titles = []
+    #for i in result:
+    #    if title in i[1]:
+    #        lista_titles.append(i)
+    #    print("result[0]",i[0])
+    #    print("result[1]",i[1])
+    #    print()
+    #
+    #print("lista_titles ", lista_titles)
+    #

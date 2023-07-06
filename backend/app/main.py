@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Optional, List
+from math import floor
+import copy
 
 import requests # Para realizar peticiones a otros servers y descargar archivos
 
@@ -31,6 +33,12 @@ from servers import *
 # Variable para decir si es esta corriendo en local o en docker
 local = True
 
+try:
+    local=bool(os.environ.get("LOCAL"))
+except:
+    local = True
+#LO PONGO MANUAL
+local = True
 # Docker
 gateway = "172.21.0.1"
 
@@ -46,9 +54,9 @@ clusters = ['localhost']
 first_server_address_ip = 'localhost' # Correrlo local 
 first_server_address_port = 10000  # Correrlo local 10000
 
-if local:
-    first_server_address_ip = 'localhost' # Correrlo local
-    first_server_address_port = 10000  # Correrlo local
+if not local:
+    first_server_address_ip = str(os.environ.get('FIRST_SERVER')) #servers[0].ip if len(servers) > 0 else 'localhost' # Correrlo local
+    first_server_address_port = 8000  # Correrlo local
 
 # Chord Thread
 stopped = False
@@ -150,18 +158,21 @@ files = [
 #     return [file["file"] for file in files if file["id"] == id]
 
 
-def send_notification(port, text: str, results): #ROXANA
+# Si notification_type = True  => Se refiere a buscar archivos por su nombre o ranking
+# Si notification_type = False  => Se refiere a devolver archivos para download
+def send_notification(server:str, results_name, results_ranking, notification_type = True): #ROXANA
     with lock:
         print("ENTRO EN SEND NOTIFICATION")
         print("Hilo en ejecución: {}".format(threading.current_thread().name))
-        print(clusters[0])
-        server = f'http://{clusters[0]}:{port}/api/files/search/{text}'
-        print(server)
-        r = requests.get(server, verify=False)
+        print("clusters[0] = ",clusters[0])
+        print("server = ", server)
+        result = requests.get(server, verify=False)
+         
         print("\R:")
-        print(r)
-        print(r.content)
-        print(r.text)
+        print("result ",result)
+        print("result.content ",result.content)
+        print("result.text ",result.text)
+        print("result.text[0] ",result.text[0])
         print("R/")
 
         selected_list = result.json()
@@ -222,8 +233,8 @@ def search_by_text(text: str): #ROXANA
     print("ENTRO EN SEARCH BY TEXT")
     print(text)
     threading_list = []
-    ranking = [] # List with the ranking and query documents results
-    results = []  # Shared list to store the matched document names
+    results_ranking = [] # List with the ranking and query documents results
+    results_name = []  # Shared list to store the matched document names
     # Construir ranking a partir de cada listado de archivos recibidos gracias al tf_idf
     # Search text in every server
     # TODO: Paralelizar peticiones a todos los servidores para pedirles sus rankings. https://docs.python.org/es/3/library/multiprocessing.html
@@ -238,33 +249,112 @@ def search_by_text(text: str): #ROXANA
         print("T.JOIN")
         t.join()
     
-    print(results) 
+    print("search_by_text results_name ",results_name)
+    print("search_by_text results_ranking ",results_ranking)
     # Make Ranking 
     # Luego de esperar cierta cantidad de segundos por los rankings pasamos a hacer un ranking general de todo lo q nos llego
     # TODO: Si alguna pc se demora mucho en devolver el ranking, pasamos a preguntarle a algun intregrante de su cluster que es lo que sucede
+    
+    # ranking_ord = sorted(ranking, key=lambda x: x[1], reverse=True)
+
+    # visited = set()
+    # new_rank = []
+
+    # for t in ranking_ord:
+    #     if t[0] not in visited:
+    #         new_rank.append(t)
+    #         visited.add(t[0])
+    
+    # result = []
+
+    # for id, rank in new_rank:
+    #     db_query = f"SELECT * FROM File WHERE File.ID = '{str(id)}'"
+    #     result.append(database.execute_read_query(db_query))
+    
+    # return result
 
     # Return Response
     # Retornamos el ranking general de todos los rankings combinados
-    return decorate_data(results)
+    results_name_str = decorate_data(results_name)
+    results_ranking_str = decorate_data(results_ranking)
+    return results_name_str, results_ranking_str
 
 def decorate_data(results): #ROXANA
     print("ENTRO A DECORATE DATA")
+    print("results ", results)
     final_string = {}
     for i, elem in enumerate(results):
-        key = f'data_{i}'
-        final_string[key] = {'name': elem, 'url': 'https://localhost:3000'}
+        print("*final_string ", final_string)
+        print(f"i={i}, elem= {elem}")
+        print("elem[0] ", elem[0])
+        print("elem[1] ", elem[1])
+        final_string[f"id_{i}"] = elem[0]
+        final_string[f"name_{i}"] = elem[1]
+        final_string[f"url_{i}"] = 'https://localhost:3000'
+    print("final string ", final_string)
     return final_string
 
-def match_by_name(text:str, datab): #ROXANA
+
+def decorate_data_rank(ranking: list): 
+    print("ENTRO A DECORATE DATA")
+    print("results ", ranking)
+    final_string = {}
+    for i, elem in enumerate(ranking):
+        print(f"i={i}, elem= {elem}")
+        final_string[f"id__{i}"] = elem[0]
+        final_string[f"similarity__{i}"] = elem[1]
+        final_string[f"url__{i}"] = 'https://localhost:3000'
+    print("final string ", final_string)
+    return final_string
+
+
+def match_by_name(text:str): #ROXANA
     print("ENTRO EN MATCH BY NAME")
     print("Hilo en ejecución: {}".format(threading.current_thread().native_id))
     #select_files_title = f"SELECT Title FROM File WHERE File.Title = '{text}'"
-    select_files_author = f"SELECT Author FROM File WHERE File.Author = '{text}'"
-    #result_1 = datab.execute_read_query(select_files_title)
-    result_2 = datab.execute_read_query(select_files_author)
-    #print("RESULTADO TITLE",result_1)
-    print("RESULTADO AUTHOR",result_2)
-    return result_2 #,result_1
+    select_files_author = f"SELECT ID, Title FROM File WHERE File.Author = '{text}'"
+    select_all_authors = f"SELECT ID, Author FROM File"
+    select_all_titles = f"SELECT ID, Title FROM File"
+    result_1 = database.execute_read_query(select_files_author)
+    result_2 = []
+    result_3 = database.execute_read_query(select_all_authors)
+    result_4 = database.execute_read_query(select_all_titles)
+    print("result_4 ", result_4)
+    if len(result_4) > 0:
+        for index, t in enumerate(result_4):
+            if text in t[1]:
+                result_2.append(t)
+            print("result[0]",t[0])
+            print("result[1]",t[1])
+            print()
+
+    print("RESULTADO ALL AUTHORS",result_3)
+    print("RESULTADO por AUTHOR, Title",result_1)
+    print("RESULTADO ALL Titles",result_4)
+    print("RESULTADO TITULOS SELECCIONADOS ", result_2)
+    return result_1 + result_2 
+
+
+####### SRI #######
+def tf_idf(textt: str):
+    # http://localhost:10000/files/search/brenckman,m.
+    print("---------------Entro en tf_idf")
+    ranking = vec_mod.run(textt)
+    result = []
+    
+    print("---------------------")
+    print("ranking", ranking)
+    print("-------------")
+
+    for id, rank in ranking: #new_rank no esta definido. PONGO MOMENTANEAMENTE ranking
+        db_query = f"SELECT ID, Title FROM File WHERE File.ID = '{str(id)}'"
+        for i in database.execute_read_query(db_query):
+            print("***** ", i)
+            result.append(i)
+    
+    print("---------------------")
+    print("result", result)
+    print("-------------")
 
     return result
     # pass # Paula
@@ -379,23 +469,6 @@ def init_servers(datab):
         print("servers_IP_list ", servers_IP_list)
         print("ports_list ", ports_list)
 
-######## SRI ########
-vm = VectorModel()
-path = Path("txts") # play
-files_name=["document_1.txt","document_2.txt","document_102.txt","document_56.txt","document_387.txt"]
-
-documents_list = database.convert_text_to_text_class(path=path, files_name=files_name)
-
-vm.doc_terms_data(documents_list)
-def tf_idf(textt: str):
-    l = vm.run(textt)
-    print(l)
-    print("hola mundo")
-    print(textt)
-    return l
-    # pass # Paula
-
-#####################
 
 class File(BaseModel):
     file_name: str
@@ -446,22 +519,23 @@ def index():
 @app.get('/files/search/{text}') #ROXANA
 def show_file(text: str):
     print("ENTRO EN SHOW FILE")
-    return search_by_text(text)#{"data": id}
+    return search_by_text(text)#{"data": id} #DUDA ESPERAR A RESPUESTA DE CARLOS EN EL GRUPO
 
 # Server
 # Este es el que llama al TF-IDF
 @app.get('/api/files/search/{text}') 
 def search_file_in_db(text: str): #ROXANA
-    print("ENTRO A SEARCH FILE IN DB")
+    print("----------------------ENTRO A SEARCH FILE IN DB")
     print("Hilo en ejecución: {}".format(threading.current_thread().name))
     #datab = DataB() #crear una nueva database en cada hilo
     #init_servers(datab)
-    matched_documents = match_by_name(text, database)
-    if matched_documents == None:
-        #Calcularel tf_idf
-        return tf_idf(text)#{"data": id}
+    matched_documents = match_by_name(text)
+    print("matched documents ", matched_documents)
+    if matched_documents == []:
+        #Calcularel tf_idf #{"data": id}
+        return [tf_idf(text),False] #El booleano: PARA SABER SI LO QUE DEVUELVE EL METODO ES QUE MATCHEO CON NOMBRE O CON EL RANKING
     else:
-        return matched_documents
+        return [matched_documents, True]
 
 
 @app.post("/files")
@@ -516,7 +590,7 @@ def receive_notification(text: str):
     return text#{"data": id}
 
 @app.post("/chord/send")
-def send_notification(message: Message):
+def send_notification_app(message: Message):
     return {"server":f"Server: {message.server}","msg": f"msg: {message.content}"}
 
 # Chord Channel Endpoints
@@ -536,11 +610,10 @@ def send_message(message: Message):
         node.recomputeFingerTable()
     # return {"server":f"Server: {message.server}","msg": f"msg: {message.content}"}
     return nodeID
+
 @app.get('/chord/channel/info')
 def get_channel_members():
     return {"osmembers":node.chan.osmembers, "nBits":node.chan.nBits, "MAXPROC":node.chan.MAXPROC, "address":node.chan.address }#search_by_text(text)#{"data": id}
-
-
 
 @app.get('/chord/channel/members')
 def get_channel_members():
@@ -570,7 +643,6 @@ def remove_doc_api(prev_id:int, newserver_id:int):
         print("remove doc = ", {i})
         database.remove_file(i)
     
-
 
 def chord_replication_routine():
     print("Started Node Replication Routine")
@@ -674,20 +746,53 @@ def get_file(name_file: str):
 
 # Cliente
 # Metodo para que el cliente le pida un archivo a traves de una url al servidor con el que se esta comunicando
-@router.get("/download/{url}")
-def download_file(url: str):
-    # Se le pide al servidor que se encuentra en url el archivo
-    # server = f'{cluster}'
-    # print(server)
-    file = download_file(url=url)#requests.get(url, verify=False)
+@router.get("/download/{number}")
+def download_file(number: str):
+    print("ENTRO EN DOWNLOAD FILE")
+    print("number ", number)
+    file_name = "document_" +number +".txt"
+    response = find_download(number) # VA A BUSCAR SI EL CURRENT SERVER TIENE EL ARCHIVO
+    print("type(response) = ",type(response))
+    print("type(response) == bool ", type(response) == bool)
+    if type(response) == bool: #SI NO SE ENCONTRO EL ARCHIVO
+        response = search_to_download(number) # SE LO PIDE A LOS DEMAS SERVERS
+        if response is None:
+            response = {"error": f"File '{file_name}' not found in the database."}
+    
+    print("response in download_file ", response)
+    
+    file_response = FileResponse(response[0], media_type="application/octet-stream", filename=response[1])
+    print("type(file_response) ", type(file_response))
+    return file_response 
 
+def find_download(number:str):
+    print("ENTRO EN FIND DOWNLOAD")
+    print("number ", number)
+    file_name = "document_" +number +".txt"
+    file_path = Path(os.path.join(PATH_TXTS,file_name))
 
-    return FileResponse(getcwd() + "/downloads" + file, media_type="application/octet-stream", filename=file)
+    print("file_path ", file_path)
+    if not file_path.exists(): #Comprueba si el archivo existe en la carpeta txts
+        return {"error": f"File '{file_name}' not found in the folder."}
+    
+    #Comprobar si el archivo esta en la base de datos del servidor
+    result_ID = check_database(number)
+    print("len(result_ID)=",len(result_ID))
+    if len(result_ID) > 0:
+        response = [file_path,file_name]
+    else:
+        response = False
+    print("response en FIND DOWNLOAD ", response)
+    return response
+
 
 # Server
-@router.get("/api/download/{name_file}")
-def download_file(name_file: str):
-    return FileResponse(getcwd() + "/downloads" + name_file, media_type="application/octet-stream", filename=name_file)
+@router.get("/api/download/{number}")
+def download_file_api(number: str):
+    print("ENTRO EN API DOWNLOAD")
+    return find_download(number)
+    
+    #return FileResponse(getcwd() + "/downloads" + "/"+filename, media_type="application/octet-stream", filename=filename)
 
 @router.delete("/delete/{name_file}")
 def delete_file(name_file: str):
