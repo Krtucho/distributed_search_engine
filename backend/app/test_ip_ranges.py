@@ -7,9 +7,9 @@ class Address:
 		self.port = port
 
 	def __eq__(self, __value: object) -> bool:
-		print("Compare->", self, __value)
+		# print("Compare->", self, __value)
 		if isinstance(__value, Address):
-			print("Inside isinstance")
+			# print("Inside isinstance")
 			return self.ip == __value.ip and self.port == __value.port
 		return False
 	

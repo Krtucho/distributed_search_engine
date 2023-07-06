@@ -52,7 +52,7 @@ clusters = ['127.0.0.1']
 
 # Chord
 first_server_address_ip = '127.0.0.1' # Correrlo local
-first_server_address_port = 10002  # Correrlo local
+first_server_address_port = 10000  # Correrlo local
 
 if not local:
     first_server_address_ip = str(os.environ.get('FIRST_SERVER')) #servers[0].ip if len(servers) > 0 else 'localhost' # Correrlo local
@@ -62,7 +62,7 @@ if not local:
 stopped = False
 
 server = '127.0.0.1'
-port = 10000 # Correrlo local
+port = 10002 # Correrlo local
 
 if not local:
     server = str(os.environ.get('IP')) # Correrlo con Docker
@@ -555,6 +555,8 @@ def send_message(message: Message):
     if node.is_leader:
         nodeID  = int(node.chan.join('node', message.server_ip, message.server_port)) # Find out who you are         #-
         node.addNode(nodeID)
+        print_debug("Inside Join Endpoint: " + str(nodeID))
+        print_info(node.nodeID)
         node.recomputeFingerTable()
     # return {"server":f"Server: {message.server}","msg": f"msg: {message.content}"}
     return nodeID
@@ -591,10 +593,10 @@ def is_leader():
 
 @app.get('/chord/channel/get_leader')
 def get_leader():
-    leader_ip = "0.0.0.0"
-    leader_port = 8000
+    leader_ip = None
+    leader_port = None
     actual_leader = node.leader
-    if not actual_leader:
+    if actual_leader:
         leader_ip = actual_leader.ip
         leader_port = actual_leader.port
 
@@ -625,12 +627,12 @@ def chord_replication_routine():
                     print(e)
             # Si no se ha replicado la informacion. Copiala
             if r:
-                print("Inside Verifying Data Replication")
+                # print("Inside Verifying Data Replication")
                 text = bool(r.json())
-                print(text)
-                print(r.text)
-                print(r.content)
-                print(r.json())
+                # print(text)
+                # print(r.text)
+                # print(r.content)
+                # print(r.json())
                 if not text:
                     #   Si no se ha replicado, replicalo!
                     node.make_replication(next_id, next_address)
@@ -658,6 +660,7 @@ def chord_replication_routine():
                     # el tuyo
                     node.make_replication(next_id, next_address, content)
                     # TODO: FixBug TypeError: 'NoneType' object does not support item assignment
+                    print_debug("Predecessors" + str(node.predecessor))
                     node.restart_pred_data_info(node.predecessor[0])
             # else:
                 # Si aun no se tiene predecesor, esperamos a que el venga a buscarnos
@@ -691,7 +694,7 @@ router = APIRouter()
 
 @router.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
-    with open(getcwd() + "/downloads" + file.filename, "wb") as myfile:
+    with open(getcwd() + "/txts" + file.filename, "wb") as myfile:
         content = await file.read()
         myfile.write(content)
         myfile.close()

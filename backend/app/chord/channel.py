@@ -16,6 +16,9 @@ class Address:
 	def __repr__(self) -> str:
 		return f"ip:{self.ip}, port:{self.port}"
 	
+	def __hash__(self):
+		return hash((self.ip, self.port))
+	
 	@staticmethod
 	def extract_ip_port(address):
 		if isinstance(address, Address):
