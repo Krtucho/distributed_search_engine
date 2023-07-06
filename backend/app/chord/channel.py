@@ -26,7 +26,7 @@ class Address:
 			print(e)
 
 	@staticmethod
-	def get_ips_in_range(ip_address, network_bits):
+	def get_ips_in_range(ip_address, network_bits=24):
 		ip_network = ipaddress.IPv4Network(f"{ip_address}/{network_bits}", strict=False)
 		return [Address(str(ip), 80) for ip in ip_network.hosts()]
 
@@ -40,7 +40,7 @@ class TransportLayer():
 		hosts:list[Address]= []
 
 class Channel():
-	def __init__(self, nBits=5, hostIP='redis', portNo=6379, address=Address("localhost", 8000)):
+	def __init__(self, nBits=5, hostIP='redis', portNo=6379, address=Address("127.0.0.1", 8000)):
 		# self.channel   = 5#redis.StrictRedis(host=hostIP, port=portNo, db=0)
 		self.osmembers:dict = {}
 		self.nBits     = nBits

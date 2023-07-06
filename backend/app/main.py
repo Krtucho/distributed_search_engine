@@ -48,11 +48,11 @@ servers:List[Address] = get_servers(local)
 # servers = ['localhost']
 
 # Clusters of n servers. Update when a new server joins
-clusters = ['localhost']
+clusters = ['127.0.0.1']
 
 # Chord
-first_server_address_ip = 'localhost' # Correrlo local
-first_server_address_port = 10000  # Correrlo local
+first_server_address_ip = '127.0.0.1' # Correrlo local
+first_server_address_port = 10002  # Correrlo local
 
 if not local:
     first_server_address_ip = str(os.environ.get('FIRST_SERVER')) #servers[0].ip if len(servers) > 0 else 'localhost' # Correrlo local
@@ -61,7 +61,7 @@ if not local:
 # Chord Thread
 stopped = False
 
-server = 'localhost'
+server = '127.0.0.1'
 port = 10000 # Correrlo local
 
 if not local:
@@ -77,13 +77,20 @@ if not local:
         pass
 
 # Files
-filepath = "/downloads/"
+filepath = "/txts/"
 if not local:
     try:
         filepath = str(os.environ.get('FILEPATH')) # Correrlo con Docker
     except:
         pass
 
+# Default Leader Port
+DEFAULT_LEADER_PORT = 8000
+if not local:
+    try:
+        DEFAULT_LEADER_PORT = str(os.environ.get('DEFAULT_LEADER_PORT'))
+    except:
+        pass
 
 app = FastAPI()
 
@@ -112,8 +119,8 @@ vec_mod = VectorModel()
 
 # Configuración de CORS
 origins = [
-    "http://localhost",
-    "http://localhost:8080",
+    "http://127.0.0.1",
+    "http://127.0.0.1:8080",
     "http://172.17.0.3",
     "http://172.17.0.3:8080",
     "http://172.17.0.1",
@@ -424,7 +431,10 @@ class AddressModel(BaseModel):
     ip:str
     port:int
 
-class FilesModel(AddressModel):
+class FilesModel(BaseModel):
+    node_id:int
+    ip:str
+    port:int
     files:List[str] = []
 
 
@@ -487,7 +497,8 @@ from chord.channel import *
 channel: Channel = None
 node = ChordNode(channel, Address(first_server_address_ip, 
                                   first_server_address_port), 
-                            Address(server, port))
+                            Address(server, port),
+                            default_leader_port = DEFAULT_LEADER_PORT)
 channel = node.chan
 # Chord endpoints
 @app.post('/chord/receive/{text}')
@@ -572,6 +583,22 @@ def post_data(files: FilesModel):
 @app.post('/chord/succ/data')
 def verify_data(address: AddressModel):
     return node.check_pred_data(address.node_id, Address(address.ip, address.port))#return {"osmembers":channel.osmembers, "nBits":channel.nBits, "MAXPROC":channel.MAXPROC }#search_by_text(text)#{"data": id}
+
+# Leader
+@app.get('/chord/channel/leader')
+def is_leader():
+    return {"is_leader":node.is_leader, "node_ide":node.nodeID}
+
+@app.get('/chord/channel/get_leader')
+def get_leader():
+    leader_ip = "0.0.0.0"
+    leader_port = 8000
+    actual_leader = node.leader
+    if not actual_leader:
+        leader_ip = actual_leader.ip
+        leader_port = actual_leader.port
+
+    return {"is_leader":node.is_leader, "node_ide":node.nodeID, "leader_ip":leader_ip, "leader_port":leader_port}
 
 
 def chord_replication_routine():

@@ -11,10 +11,17 @@ n = 8
 
 class ChordNode:
 #-
-  def __init__(self, chan: Channel, first_server_address: Address, node_address:Address, file_path="downloads/"):#-
+  def __init__(self, chan: Channel, first_server_address: Address, node_address:Address, file_path="downloads/", default_leader_port=8000):#-
     print(f"Started ChordNode for address: {node_address}") 
     self.is_leader = False
     self.leader = first_server_address
+    self.default_leader_port = default_leader_port
+
+    self.node_address = node_address
+
+    # Leaders
+    self.leaders_list = set()
+
     # self.is_
     # self.socket = socket # Para enviar peticiones(paquetes) y recibir respuestas. En este caso se utilizara la instancia de fastapi
     if node_address == first_server_address:
@@ -50,7 +57,6 @@ class ChordNode:
       self.nodeSet = []                           # Nodes discovered so far     #-
       self.nodeSetDict = {}
 
-    self.node_address = node_address
 
     # Replication
     self.successors = self.FT
@@ -72,8 +78,7 @@ class ChordNode:
       print("Error Listing Dir")
     # self.data[self.nodeID] = [file for file in  os.listdir(self.file_path)]
 
-    # Leaders
-    self.leaders_list = set()
+    
 
     if self.nodeID <= 0: # ID was not ok when joined to the network
       while self.nodeID <= 0:
@@ -84,7 +89,7 @@ class ChordNode:
     
     self.run()
     # Leaders
-    self.update_leaders_list()
+    # self.update_leaders_list(False)
     self.update_succesors()
     succ = self.get_succesor() # succ seria el id(llave)
     print("Members", self.chan.osmembers)
@@ -112,38 +117,86 @@ class ChordNode:
   
   # Leader
   def ask_for_leaders(self, leader):
-    r = requests.get("http://{leader.ip}:{leader.port}/endpoint")
+    try:
+      r = requests.get(f"http://{ip}:{self.default_leader_port}/chord/channel/leader")
+      json = r.json()
+    except:
+      return False
 
     # Update leaders_list
 
   # Leader
-  def update_leaders_list(self):
-    if self.leader: # Remueve el lider actual del conjunto de lideres xq se supone que se haya caido
-      remove_
+  def knows_leader(self, leader_ip, leader_port):
+    return leader_ip != "0.0.0.0"
+
+  # Leader
+
+
+  # Leader
+  def update_leaders_list(self, was_fallen=True):
+    print_debug("Inside update Leaders List")
+    if was_fallen and self.leader: # Remueve el lider actual del conjunto de lideres xq se supone que se haya caido
+      self.remove_leader_from_leaders_list(self.leader)
+      self.leader = None
+      print_info("Has leader and was fallen")
+      #
     # Search for next Leader in leaders_list
     if len(self.leaders_list) > 0:
       # Si se sabe de al menos otro lider en la red, pasamos a actualizar nuestro lider por ese y le hacemos las preguntas
       self.leader = self.leaders_list[0]
       self.ask_for_leaders(self.leader)
+      print_info("Leaders list has some elemet(s)")
+
     else: # Si no se encuentra otro lider en la red, hacemos broadcasting buscando cual es el nodo con mayor id
       max_id_node = 0
+      max_ip_node:Address = None
       alive_servers = []
-      for ip in Address.get_ips_in_range(self.node_address.ip, 8):
+      ips_in_range = Address.get_ips_in_range(self.node_address.ip, 24)
+      print_log("Ips in range: " + str(ips_in_range))
+      for ip in Address.get_ips_in_range(self.node_address.ip, 24):
         # Haz requests por cada ip buscando quien esta vivo
-        r = requests.get()
-        # ve actualizando el nodo con mayor id
-        max_id_node = max(max_id_node, "id_del_nodo")
-
-      
+        try:
+          r = requests.get(f"http://{ip}:{self.default_leader_port}/chord/channel/leader")
+          json = r.json()
+          leader_node_id = json["node_id"]
+          leader_is_leader = json["is_leader"]
+        
+          if json: # ve actualizando el nodo con mayor id
+            max_id_node = max(max_id_node, leader_node_id)
+            alive_servers.append((max_id_node, max_ip_node))
+        except Exception as e:
+          print_error(str(e))
+          continue
       
       if len(alive_servers) <= 0: # Si no se encuentra ningun server vivo
         self.leader = self.node_address
+        self.leaders_list.add(self.leader)
       else:
         # Obten el nodo con mayor id
+        if max_id_node == self.nodeID:
+          self.leader = self.node_address
+          self.leaders_list.add(self.leader)
+        # Done!
         # Luego de quedarte con el mayor pregunta si aun esta vivo y asume q ese sera el nuevo lider
-        # Tb preguntale si el ya es lider o si conoce al lider. En ese caso ya puedes tirar directo primero para el q te
-        # dijo que era el lider. Sino se asume que el lider sera el
-        pass
+        try:
+          r = requests.get(f"http://{ip}:{self.default_leader_port}/chord/channel/get_leader")
+          json = r.json()
+          temp_leader_node_id = json["node_id"]
+          temp_leader_is_leader = json["is_leader"]
+          leader_ip = json["leader_ip"]
+          leader_port = json["leader_port"]
+          # Tb preguntale si el ya es lider o si conoce al lider. En ese caso ya puedes tirar directo primero para el q te
+          if self.knows_leader(leader_ip, leader_port):
+            self.leader = Address(leader_ip, leader_port)
+            self.add_leader_to_leaders_list(self.leader)
+          else:
+          # dijo que era el lider. Sino se asume que el lider sera el de mayor id
+            self.leader = Address(max_ip_node.ip, max_ip_node.port)
+            self.add_leader_to_leaders_list(self.leader)
+          # if temp_leader_is_leader:
+          #   ask_for_leader()
+        except:
+          return False
       
 
 
@@ -302,10 +355,12 @@ class ChordNode:
       
       return r.json()
     except Exception as e:
-      print(e)
+      print_error(e)
       # Leader
-      self.update_leaders_list()
-      return None
+      while not r:
+        self.update_leaders_list()
+        r = requests.get(f"http://{self.leader.ip}:{self.leader.port}/chord/channel/info/")
+      return r.json()
 
   def ask_members_to_leader(self):
     # leader_address = self.chan[self.leader]
@@ -315,17 +370,29 @@ class ChordNode:
       return self.chan.osmembers
     
     try: # Checking if leader is ok, if not update_leaders
-    r = requests.get(f"http://{self.leader.ip}:{self.leader.port}/chord/channel/members/")
-    print(r)
-    print(r.text)
-    if r.ok:
-      osmembers = r.json()["osmembers"]
-      self.chan.osmembers = osmembers
-      for node in self.chan.osmembers.keys():
-        self.addNode(node)
-      print("Ask members to leader", osmembers)
-      return osmembers
-    return None
+      r = requests.get(f"http://{self.leader.ip}:{self.leader.port}/chord/channel/members/")
+      print(r)
+      print(r.text)
+      if r.ok:
+        osmembers = r.json()["osmembers"]
+        self.chan.osmembers = osmembers
+        for node in self.chan.osmembers.keys():
+          self.addNode(node)
+        print("Ask members to leader", osmembers)
+        return osmembers
+      return None
+    except:
+      while not r or not r.ok:
+        r = requests.get(f"http://{self.leader.ip}:{self.leader.port}/chord/channel/members/")
+        self.update_leaders_list()
+        if r.ok:
+          osmembers = r.json()["osmembers"]
+          self.chan.osmembers = osmembers
+          for node in self.chan.osmembers.keys():
+            self.addNode(node)
+          print("Ask members to leader", osmembers)
+        return osmembers
+      return None
 
   def get_members(self):
     # r = requests.get(f"http://{self.chan.address.ip}:{self.chan.address.port}/chord/channel/members/")
