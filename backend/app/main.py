@@ -21,9 +21,9 @@ from logs.logs_format import *
 from vector_model import VectorModel
 from pathlib import Path
 import database
-# import os
 #############
 
+import datetime
 
 # Logs
 from logs.logs_format import *
@@ -48,11 +48,11 @@ servers:List[Address] = get_servers(local)
 # servers = ['localhost']
 
 # Clusters of n servers. Update when a new server joins
-clusters = ['localhost']
+clusters = ['127.0.0.1']
 
 # Chord
-first_server_address_ip = 'localhost' # Correrlo local 
-first_server_address_port = 10000  # Correrlo local 10000
+first_server_address_ip = '127.0.0.1' # Correrlo local
+first_server_address_port = 10000  # Correrlo local
 
 if not local:
     first_server_address_ip = str(os.environ.get('FIRST_SERVER')) #servers[0].ip if len(servers) > 0 else 'localhost' # Correrlo local
@@ -61,8 +61,8 @@ if not local:
 # Chord Thread
 stopped = False
 
-server = 'localhost'
-port = 10000 # Correrlo local
+server = '127.0.0.1'
+port = 10002 # Correrlo local
 
 if not local:
     server = str(os.environ.get('IP')) # Correrlo con Docker
@@ -79,13 +79,20 @@ if not local:
         pass
 
 # Files
-filepath = "/downloads/"
+filepath = "/txts/"
 if not local:
     try:
         filepath = str(os.environ.get('FILEPATH')) # Correrlo con Docker
     except:
         pass
 
+# Default Leader Port
+DEFAULT_LEADER_PORT = 8000
+if not local:
+    try:
+        DEFAULT_LEADER_PORT = str(os.environ.get('DEFAULT_LEADER_PORT'))
+    except:
+        pass
 
 app = FastAPI()
 
@@ -100,16 +107,14 @@ servers_ID_list = [] # NECESITO SABER EL TOTAL DE SERVIDORES DE LA RED y su ID
 servers_IP_list = [] # con su IP
 name_db = ''
 
-
 ############ SRI ############
 vec_mod = VectorModel()
 #############################
 
-
 # Configuración de CORS
 origins = [
-    "http://localhost",
-    "http://localhost:8080",
+    "http://127.0.0.1",
+    "http://127.0.0.1:8080",
     "http://172.17.0.3",
     "http://172.17.0.3:8080",
     "http://172.17.0.1",
@@ -242,28 +247,11 @@ def search_by_text(text: str): #ROXANA
     # Luego de esperar cierta cantidad de segundos por los rankings pasamos a hacer un ranking general de todo lo q nos llego
     # TODO: Si alguna pc se demora mucho en devolver el ranking, pasamos a preguntarle a algun intregrante de su cluster que es lo que sucede
     
-    # ranking_ord = sorted(ranking, key=lambda x: x[1], reverse=True)
-
-    # visited = set()
-    # new_rank = []
-
-    # for t in ranking_ord:
-    #     if t[0] not in visited:
-    #         new_rank.append(t)
-    #         visited.add(t[0])
-    
-    # result = []
-
-    # for id, rank in new_rank:
-    #     db_query = f"SELECT * FROM File WHERE File.ID = '{str(id)}'"
-    #     result.append(database.execute_read_query(db_query))
-    
-    # return result
-
     # Return Response
     # Retornamos el ranking general de todos los rankings combinados
     results_name_str = decorate_data(results_name)
     results_ranking_str = decorate_data(results_ranking)
+
     return results_name_str, results_ranking_str
 
 def decorate_data(results): #ROXANA
@@ -277,7 +265,8 @@ def decorate_data(results): #ROXANA
         print("elem[1] ", elem[1])
         final_string[f"id_{i}"] = elem[0]
         final_string[f"name_{i}"] = elem[1]
-        final_string[f"url_{i}"] = 'https://localhost:3000'
+        # final_string[f"url__{i}"] = 'https://localhost:3000'
+        final_string[f"url_{i}"] = f'https://{server}:{port}'
     print("final string ", final_string)
     return final_string
 
@@ -290,7 +279,8 @@ def decorate_data_rank(ranking: list):
         print(f"i={i}, elem= {elem}")
         final_string[f"id__{i}"] = elem[0]
         final_string[f"similarity__{i}"] = elem[1]
-        final_string[f"url__{i}"] = 'https://localhost:3000'
+        # final_string[f"url__{i}"] = 'https://localhost:3000'
+        final_string[f"url_{i}"] = f'https://{server}:{port}'
     print("final string ", final_string)
     return final_string
 
@@ -483,6 +473,12 @@ def init_servers(datab, name_db):
         print("servers_IP_list ", servers_IP_list)
         print("ports_list ", ports_list)
 
+    # coord
+    t3 = threading.Thread(target=check_alive)
+    t3.start()
+
+    print("SALIO DEL INIT")
+
 
 class File(BaseModel):
     file_name: str
@@ -501,7 +497,10 @@ class AddressModel(BaseModel):
     ip:str
     port:int
 
-class FilesModel(AddressModel):
+class FilesModel(BaseModel):
+    node_id:int
+    ip:str
+    port:int
     files:List[str] = []
 
 
@@ -564,7 +563,8 @@ from chord.channel import *
 channel: Channel = None
 node = ChordNode(channel, Address(first_server_address_ip, 
                                   first_server_address_port), 
-                            Address(server, port))
+                            Address(server, port),
+                            default_leader_port = DEFAULT_LEADER_PORT)
 channel = node.chan
 # Chord endpoints
 @app.post('/chord/receive/{text}')
@@ -621,6 +621,8 @@ def send_message(message: Message):
     if node.is_leader:
         nodeID  = int(node.chan.join('node', message.server_ip, message.server_port)) # Find out who you are         #-
         node.addNode(nodeID)
+        print_debug("Inside Join Endpoint: " + str(nodeID))
+        print_info(node.nodeID)
         node.recomputeFingerTable()
     # return {"server":f"Server: {message.server}","msg": f"msg: {message.content}"}
     return nodeID
@@ -666,6 +668,23 @@ def remove_doc_api(rango:str):
     check_files = f"SELECT ID FROM File"
     result = database.execute_read_query(check_files)
     print("result check_files = ", result)
+    
+# Leader
+@app.get('/chord/channel/leader')
+def is_leader():
+    return {"is_leader":node.is_leader, "node_ide":node.nodeID}
+
+@app.get('/chord/channel/get_leader')
+def get_leader():
+    leader_ip = None
+    leader_port = None
+    actual_leader = node.leader
+    if actual_leader:
+        leader_ip = actual_leader.ip
+        leader_port = actual_leader.port
+
+    return {"is_leader":node.is_leader, "node_ide":node.nodeID, "leader_ip":leader_ip, "leader_port":leader_port}
+
 
 def chord_replication_routine():
     print("Started Node Replication Routine")
@@ -691,12 +710,12 @@ def chord_replication_routine():
                     print(e)
             # Si no se ha replicado la informacion. Copiala
             if r:
-                print("Inside Verifying Data Replication")
+                # print("Inside Verifying Data Replication")
                 text = bool(r.json())
-                print(text)
-                print(r.text)
-                print(r.content)
-                print(r.json())
+                # print(text)
+                # print(r.text)
+                # print(r.content)
+                # print(r.json())
                 if not text:
                     #   Si no se ha replicado, replicalo!
                     node.make_replication(next_id, next_address)
@@ -724,6 +743,7 @@ def chord_replication_routine():
                     # el tuyo
                     node.make_replication(next_id, next_address, content)
                     # TODO: FixBug TypeError: 'NoneType' object does not support item assignment
+                    print_debug("Predecessors" + str(node.predecessor))
                     node.restart_pred_data_info(node.predecessor[0])
             # else:
                 # Si aun no se tiene predecesor, esperamos a que el venga a buscarnos
@@ -732,9 +752,6 @@ def chord_replication_routine():
             node.recomputeFingerTable() #-
             print("FT", node.FT)
             # print('FT[','%04d'%node.nodeID,']: ',['%04d' % k for k in node.FT]) #- 
-            
-            if node.is_leader:
-                node.check_live_nodes()
 
             print_info(node)
 
@@ -744,6 +761,19 @@ def chord_replication_routine():
     except KeyboardInterrupt as e:
         print("Stopping Chord Routine Thread...")
         stopped = True
+
+def check_alive():
+    stopped = False
+    try:
+        while not stopped:
+            if node.is_leader and datetime.datetime.now().time().minute/5 == 0:
+                # print(node.clock)
+                print("-------------------------------Check alive-----------------------------")
+                node.check_live_nodes()
+                # time.sleep(10)
+    except KeyboardInterrupt as e:
+        stopped = True
+
 
 # Uploading Files
 from fastapi import APIRouter, UploadFile, File, Form
@@ -756,7 +786,7 @@ router = APIRouter()
 
 @router.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
-    with open(getcwd() + "/downloads" + file.filename, "wb") as myfile:
+    with open(getcwd() + "/txts" + file.filename, "wb") as myfile:
         content = await file.read()
         myfile.write(content)
         myfile.close()

@@ -53,7 +53,7 @@ def get_servers(local):
         if os.path.exists('servers.txt'):
             servers = create_addresses(load_servers())
     else:
-        create_servers_file_port('localhost', 10000, 10002)
+        create_servers_file_port('127.0.0.1', 10000, 10002)
         servers = create_addresses(load_servers())
     
     if not local:

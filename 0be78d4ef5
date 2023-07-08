@@ -1,0 +1,283 @@
+[33mcommit 0be78d4ef56981ed616498f785782f2d3c1c22f5[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m)[m
+Author: Selleen <roxypm10@gmail.com>
+Date:   Thu Jul 6 06:38:25 2023 -0400
+
+    aaaah!
+
+[33mcommit 175ec22d873a2b62b12b4611f8a63f4edf4e733a[m
+Merge: e55fe6b b3f8f3d
+Author: Selleen <roxypm10@gmail.com>
+Date:   Thu Jul 6 06:08:37 2023 -0400
+
+    haciendo merge
+
+[33mcommit b3f8f3d25c40a35046806bde40ac2b0174f8834b[m
+Author: Selleen <roxypm10@gmail.com>
+Date:   Thu Jul 6 05:47:06 2023 -0400
+
+    probando 1 2 3
+
+[33mcommit c49d6796f711649101c68ec008459b0cd34bd6e7[m
+Author: Selleen <roxypm10@gmail.com>
+Date:   Thu Jul 6 05:10:10 2023 -0400
+
+    pincha remove_doc_api
+
+[33mcommit 386ec748e453d33d2e7f1e5d2ffc151c04987283[m
+Author: Selleen <roxypm10@gmail.com>
+Date:   Thu Jul 6 02:22:56 2023 -0400
+
+    fixing some bugs
+
+[33mcommit 40be8c12b5d188c547445e09afbeaac5e8071a51[m
+Author: Selleen <roxypm10@gmail.com>
+Date:   Thu Jul 6 02:19:49 2023 -0400
+
+    distribuir data
+
+[33mcommit e55fe6bbf5a105661e6cdcccb858e6408c878f91[m
+Author: prp97 <p.rodriguezperez97@gmail.com>
+Date:   Wed Jul 5 20:50:58 2023 -0400
+
+    readme docker run nltk_data
+
+[33mcommit 545889653fdf0594a922b01261c18b78b3a31c8a[m
+Author: Selleen <roxypm10@gmail.com>
+Date:   Tue Jun 27 11:44:51 2023 -0400
+
+    fixing some bugs
+
+[33mcommit 80aa8ead84775bd36d0095469856c128d23bb5cc[m[33m ([m[1;31morigin/sri_model[m[33m)[m
+Merge: ccd1e9c 9446da0
+Author: Paula <62489004+prp97@users.noreply.github.com>
+Date:   Mon Jun 26 02:52:08 2023 -0400
+
+    Merge branch 'main' into sri_model
+
+[33mcommit 9446da0b6fbfe28643f2adc45bd85655de4d48ea[m
+Author: Selleen <roxypm10@gmail.com>
+Date:   Sat Jun 24 22:10:40 2023 -0400
+
+    fixing some bugs
+
+[33mcommit ccd1e9ce9b59d5c62781e06ee5d55bfc6e06057c[m
+Author: Paula <62489004+prp97@users.noreply.github.com>
+Date:   Sat Jun 24 03:36:03 2023 -0400
+
+    hace el rank, pero el decorate data solo impr el ult elem de la lista
+
+[33mcommit 942a2f73a071d0014cb565700b58fa18c58dc601[m
+Author: Selleen <roxypm10@gmail.com>
+Date:   Fri Jun 23 13:07:16 2023 -0400
+
+    match for title
+
+[33mcommit dc64674513cec8092730585f323e65bcb1e567ad[m
+Author: Selleen <roxypm10@gmail.com>
+Date:   Thu Jun 22 08:39:15 2023 -0400
+
+    respuestas 2 listas
+
+[33mcommit 018da6e08939429054730005bf189e36728962dd[m
+Author: Krtucho <Krtucho98@gmail.com>
+Date:   Thu Jun 22 01:46:58 2023 -0400
+
+    frontend env variable, updated documentation and backend's Dockerfile
+
+[33mcommit c7b30b47f03d4742c1a417b5ff314e1015884499[m
+Merge: 618f941 8c42291
+Author: Paula <62489004+prp97@users.noreply.github.com>
+Date:   Wed Jun 21 23:41:57 2023 -0400
+
+    Merge branch 'sri_model'
+
+[33mcommit 8c422912178304483ed2c463b3ab10009b42886f[m
+Author: Paula <62489004+prp97@users.noreply.github.com>
+Date:   Thu Jun 22 03:36:31 2023 -0400
+
+    Update main.py
+
+[33mcommit 618f9412e4a87a560a84de2b054068d097c1a16a[m
+Author: Krtucho <Krtucho98@gmail.com>
+Date:   Wed Jun 21 23:34:49 2023 -0400
+
+    Documentation and testing containers
+
+[33mcommit e578eed2346c1cbb90c8858b8ad034f3722e81e6[m
+Author: Krtucho <Krtucho98@gmail.com>
+Date:   Wed Jun 21 23:28:54 2023 -0400
+
+    Documentation and testing containers
+
+[33mcommit 142eb65fdc168cf62eee6ead2f44c30494f5a434[m
+Author: Paula <62489004+prp97@users.noreply.github.com>
+Date:   Wed Jun 21 22:53:34 2023 -0400
+
+    Update main.py
+
+[33mcommit fa6d2ce4ecc5fc8c23f4b15c826efcec4c80e2b5[m
+Merge: 2ddba69 9853edd
+Author: Krtucho <Krtucho98@gmail.com>
+Date:   Wed Jun 21 22:11:28 2023 -0400
+
+    Merge branch 'deploy-servers' into main
+    
+    updated script.sh
+
+[33mcommit bb2439c182d0b5230898e4767477d28d78019018[m
+Author: Paula <62489004+prp97@users.noreply.github.com>
+Date:   Wed Jun 21 21:51:42 2023 -0400
+
+    updates main, umbral vm
+
+[33mcommit 9dfe57b4cab82907aecfe693c1fd837f2c720746[m
+Author: Paula <62489004+prp97@users.noreply.github.com>
+Date:   Tue Jun 20 19:04:25 2023 -0400
+
+    .
+
+[33mcommit 9853edd879fc310d5c3c3a0e6b2ba3dfc7bcfa37[m[33m ([m[1;31morigin/deploy-servers[m[33m)[m
+Author: Krtucho <Krtucho98@gmail.com>
+Date:   Tue Jun 20 08:01:37 2023 -0400
+
+    quasar env variables
+
+[33mcommit 4577139a9d89a8d9af74ad916ff2d6e5c0305e78[m
+Author: Paula <62489004+prp97@users.noreply.github.com>
+Date:   Tue Jun 20 03:01:28 2023 -0400
+
+    necesito saber q server es el q esta llamando
+
+[33mcommit 2ddba699dbf0e7df53c666debb93e518a5a08d79[m
+Author: Selleen <roxypm10@gmail.com>
+Date:   Mon Jun 19 23:56:14 2023 -0400
+
+    download api
+
+[33mcommit 36419256efbb5716f5012266d035957ff4b2a00f[m
+Author: Selleen <roxypm10@gmail.com>
+Date:   Mon Jun 19 22:36:34 2023 -0400
+
+    download
+
+[33mcommit 3376ab139f8f8a521b3f575837512723637d5423[m
+Author: Selleen <roxypm10@gmail.com>
+Date:   Mon Jun 19 15:45:40 2023 -0400
+
+    devuelve nombre del archivo bien
+
+[33mcommit e82405888f9cd7913b5c7d687529eedb92be28ae[m
+Author: Selleen <roxypm10@gmail.com>
+Date:   Mon Jun 19 14:12:00 2023 -0400
+
+    assign docs
+
+[33mcommit 4cbda6a0c9f79caafb84605d94fdd514629af840[m
+Author: Selleen <roxypm10@gmail.com>
+Date:   Mon Jun 19 01:07:38 2023 -0400
+
+    cambios
+
+[33mcommit a88d4875226daa6b3daf5c482aa3ec64001f676a[m
+Author: Selleen <roxypm10@gmail.com>
+Date:   Mon Jun 19 00:59:06 2023 -0400
+
+    mover app
+
+[33mcommit c5f7d474de09fd9b0ea1a7ab45ca00b3230c7255[m
+Author: Selleen <roxypm10@gmail.com>
+Date:   Mon Jun 19 00:56:50 2023 -0400
+
+    merge con el main
+
+[33mcommit 2cc5788496f29c30f26eb5493a823ec4fd3bb678[m
+Author: Selleen <roxypm10@gmail.com>
+Date:   Mon Jun 19 00:55:16 2023 -0400
+
+    text
+
+[33mcommit 36794a393d3dfcc80c039b7b1c9037697c8dbde5[m
+Author: Selleen <roxypm10@gmail.com>
+Date:   Sat Jun 17 23:57:31 2023 -0400
+
+    requirements add
+
+[33mcommit c6a824ae6bdb1b83ee3dede6ccfb9adc3e45d33f[m
+Merge: b3ea0f2 c4d0918
+Author: Selleen <roxypm10@gmail.com>
+Date:   Sat Jun 17 23:52:05 2023 -0400
+
+    conflictos resueltos
+
+[33mcommit b3ea0f28d450f759f4f11a59b86cb135c65bc966[m
+Author: Selleen <roxypm10@gmail.com>
+Date:   Sat Jun 17 23:45:22 2023 -0400
+
+    guardar todos los archivos en /backend/app
+
+[33mcommit 5fa3579282feb2bc1d16d76ad01f681c72fb5228[m
+Author: Selleen <roxypm10@gmail.com>
+Date:   Sat Jun 17 23:10:24 2023 -0400
+
+    c
+
+[33mcommit c4d091867725b6cbc1d9fd6577714cd389f3e43a[m
+Author: Krtucho <Krtucho98@gmail.com>
+Date:   Sat Jun 17 19:34:33 2023 -0400
+
+    fixed backend Dockerfile, changes to script and script_full.sh removed, ./requirements.txt
+
+[33mcommit 9ce3228838d7ad179aaaa3ce1ad31ec1a3bc955c[m
+Author: Krtucho <Krtucho98@gmail.com>
+Date:   Sat Jun 17 18:38:52 2023 -0400
+
+    building scripts and fixing import of env variables on vue-quasar code
+
+[33mcommit e7d01b94d2545ae391a0d02ce136644d75608ec4[m
+Author: Krtucho <Krtucho98@gmail.com>
+Date:   Sat Jun 17 17:49:29 2023 -0400
+
+    local and docker config, fixing some bugs
+
+[33mcommit c987112d4041b14e23771a4e3580275d472386b9[m
+Author: Krtucho <Krtucho98@gmail.com>
+Date:   Sat Jun 17 16:55:22 2023 -0400
+
+    merge conflicts with processes/parse_cran.py
+
+[33mcommit 7414d793bcded19e0075f508611ed3e1085c5547[m
+Author: Krtucho <Krtucho98@gmail.com>
+Date:   Sat Jun 17 16:31:59 2023 -0400
+
+    before merge backend/app/main.py with processes/main.py
+
+[33mcommit a1e85a2b19814cd3f25243fccfe9bdad080a444a[m
+Merge: d908fed a754b8a
+Author: Krtucho <33796723+Krtucho@users.noreply.github.com>
+Date:   Sat Jun 17 16:21:19 2023 -0400
+
+    Merge pull request #1 from Krtucho/publisher-subscriber
+    
+    Publisher subscriber
+
+[33mcommit a754b8a04bac0b5b5e0993de613710f1524c3094[m[33m ([m[1;31morigin/publisher-subscriber[m[33m)[m
+Merge: c2ac6a8 d908fed
+Author: Krtucho <Krtucho98@gmail.com>
+Date:   Sat Jun 17 16:20:49 2023 -0400
+
+    merging sri_model publisher-subscriber roxy-branch
+
+[33mcommit d908fede9f19fba3b070670a7094c241b3ad1c89[m
+Author: Paula <62489004+prp97@users.noreply.github.com>
+Date:   Sat Jun 17 16:10:39 2023 -0400
+
+    Delete database.py
+
+[33mcommit c2ac6a8c77f6fd500bffef1dc37c778173e2421e[m
+Merge: ef0419b c5abe1e
+Author: Krtucho <Krtucho98@gmail.com>
+Date:   Sat Jun 17 16:10:15 2023 -0400
+
+    merging sri_model publisher-subscriber roxy-branch
+
+[33mcommit a7f841be5d3bde935da7
