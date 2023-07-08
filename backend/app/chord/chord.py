@@ -157,7 +157,8 @@ class ChordNode:
 
   # Leader
   def knows_leader(self, leader_ip, leader_port):
-    return leader_ip != "0.0.0.0"
+    
+    return leader_ip and leader_port and leader_ip != "0.0.0.0" and leader_ip != "127.0.0.1" and leader_ip != "localhost"
 
   # Leader
 
@@ -196,8 +197,8 @@ class ChordNode:
         
           if address == self.node_address.port: # Do not make a request
             r = True
-            max_id_node = max(max_id_node, leader_node_id)
-            alive_servers.append((max_id_node, max_ip_node))
+            max_id_node = max(max_id_node, self.nodeID)
+            alive_servers.append((self.nodeID, self.node_address))
             continue
           else:
             # Make a request
@@ -210,13 +211,19 @@ class ChordNode:
 
             print(json)
             if json: # ve actualizando el nodo con mayor id
-              leader_node_id = json["node_id"]
+              print("Inside if json")
+              node_id = json["node_id"]
               leader_is_leader = json["is_leader"]
+              node_address = json["node_address"]
               leader_ip = json["leader_ip"]
               leader_port = json["leader_port"]
               
-              max_id_node = max(max_id_node, leader_node_id)
-              alive_servers.append((max_id_node, max_ip_node))
+              if node_id > max_id_node:
+                max_ip_node = node_address
+
+              max_id_node = max(max_id_node, node_id)
+              alive_servers.append((node_id, node_address))
+
 
           # Tb preguntale si el ya es lider o si conoce al lider. En ese caso ya puedes tirar directo primero para el q te
           if self.knows_leader(leader_ip, leader_port):
@@ -253,7 +260,10 @@ class ChordNode:
         # Done!
         # Luego de quedarte con el mayor pregunta si aun esta vivo y asume q ese sera el nuevo lider
         try:
-          r = requests.get(f"http://{max_ip_node.ip}:{self.default_leader_port}/chord/channel/leader")
+          if not max_ip_node:
+            return False
+          print_info(max_ip_node)
+          r = requests.get(f"http://{max_ip_node.ip}:{max_ip_node.port}/chord/channel/leader") #self.default_leader_port
           json = r.json()
 
           if not json:
@@ -271,6 +281,7 @@ class ChordNode:
 
           # dijo que era el lider. Sino se asume que el lider sera el de mayor id
           self.leader = Address(max_ip_node.ip, max_ip_node.port)
+          print_debug(f"Leader: {self.leader}")
           if self.leader == self.node_address:
             self.is_leader = True
           self.add_leader_to_leaders_list(self.leader)
@@ -280,6 +291,36 @@ class ChordNode:
 
           return False
       
+  # Leader
+  # Discovering
+  def discover(self):
+    temp_ports = [10000, 10001, 10002, 10003, 10004, 10005, 10006, 10007, 10008, 10009, 10010, 10011, 10012]
+    for address in temp_ports:#Address.get_ips_in_range(self.node_address.ip, 24):
+      try:
+        # Make a request
+            ########
+            # r = requests.get(f"http://{address.ip}:{self.default_leader_port}/chord/channel/get_leader")
+            r = requests.get(f"http://127.0.0.1:{address}/chord/channel/get_leader")
+            # Uncomment Line above
+
+            json = r.json()
+
+            print(json)
+            if json: # ve actualizando el nodo con mayor id
+              print("Inside if json")
+              node_id = json["node_id"]
+              leader_is_leader = json["is_leader"] # Dice si el nodo actual al que le estamos preguntando es lider
+              node_address = json["node_address"]
+              leader_ip = json["leader_ip"] # Si el nodo actual al que le estamos preguntando conoce al lider, nos devolvera la ip del mismo
+              leader_port = json["leader_port"] # Si el nodo actual al que le estamos preguntando conoce al lider, nos devolvera el port del mismo
+              
+              self.chan.osmembers[node_id] = node_address
+              self.addNode(node_id)
+        # if is a leader add it to leaders list
+              if leader_is_leader:
+                self.leaders_list.append(node_address)
+      except:
+        continue
 
 
   def join_leader(self, node_address):
@@ -393,6 +434,8 @@ class ChordNode:
     for node in self.nodeSet:
       if node > self.nodeID:
         return node
+    # if self.nodeID == self.nodeSet[len(self.nodeSet)-1]:
+    #   return 
     return self.nodeSet[0]
     # self.nodeSet
     # return self.FT[1]
@@ -400,7 +443,7 @@ class ChordNode:
   def check_pred_data(self, nodeId, node_Address: Address):
     if node_Address == self.node_address:
       return True
-    print("Inside Check Pred Data ID: ", nodeId, node_Address, self.pred_data_copied, self.pred_data.get(nodeId))
+    print_debug(f"Inside Check Pred Data ID:  {nodeId}, {node_Address}, {self.pred_data_copied}, {self.pred_data.get(nodeId)}")
     return self.pred_data_copied and self.pred_data.get(nodeId)
   
   def confirm_pred_data_info(self, node_id, node_address, files=None):
@@ -565,11 +608,11 @@ class ChordNode:
 
     others = (self.chan.get_members() if self.is_leader else self.get_members()) - set([str(self.nodeID)])#list(self.chan.channel.smembers('node') - set([str(self.nodeID)])) #-
     print("others", others)
-    for i in others: #-
-      self.addNode(i) #-
-      servers:list[PubMessage] = self.chan.sendTo(self.nodeID, [i], (JOIN)) #-
-      for server in servers:
-        requests.post(f"http://{server.address.ip}:{server.address.port}/")
+    # for i in others: #-
+    #   self.addNode(i) #-
+    #   servers:list[PubMessage] = self.chan.sendTo(self.nodeID, [i], (JOIN)) #-
+    #   for server in servers:
+    #     requests.post(f"http://{server.address.ip}:{server.address.port}/") # TODO: Crear endpoint para avisarle a un nodo de que este nodo se unio a la red
     self.recomputeFingerTable() #-
  #-
 

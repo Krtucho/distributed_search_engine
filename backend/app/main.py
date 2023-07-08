@@ -672,7 +672,7 @@ def remove_doc_api(rango:str):
 # Leader
 @app.get('/chord/channel/leader')
 def is_leader():
-    return {"is_leader":node.is_leader, "node_ide":node.nodeID}
+    return {"is_leader":node.is_leader, "node_id":node.nodeID}
 
 @app.get('/chord/channel/get_leader')
 def get_leader():
@@ -682,8 +682,11 @@ def get_leader():
     if actual_leader:
         leader_ip = actual_leader.ip
         leader_port = actual_leader.port
+    # else:
+    #     leader_ip = node.node_address.ip
+    #     leader_port = node.node_address.port
 
-    return {"is_leader":node.is_leader, "node_ide":node.nodeID, "leader_ip":leader_ip, "leader_port":leader_port}
+    return {"is_leader":node.is_leader, "node_id":node.nodeID, "node_address":node.node_address, "leader_ip":leader_ip, "leader_port":leader_port}
 
 
 def chord_replication_routine():
@@ -692,6 +695,8 @@ def chord_replication_routine():
     stopped = False
     try:
         while not stopped:
+            # Actualizar la lista de nodos con el lider
+            node.update_succesors()
             # Obtener el sucesor
             next_id, next_address = node.get_succesor(), node.chan.get_member(node.get_succesor())#node.localSuccNode(node.nodeID)
             print("Successor", next_id, next_address)
@@ -755,6 +760,11 @@ def chord_replication_routine():
 
             print_info(node)
 
+            # Si es lider entonces:
+            # Check for other leaders or nodes on the network
+            # Discovering
+            if node.is_leader:
+                node.discover()
             # Reccess
             print(f"On Thread...Sleeping for {TIMEOUT} seconds")
             time.sleep(TIMEOUT)
