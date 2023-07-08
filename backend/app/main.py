@@ -62,7 +62,7 @@ if not local:
 stopped = False
 
 server = '127.0.0.1'
-port = 10002 # Correrlo local
+port = 10000 # Correrlo local
 
 if not local:
     server = str(os.environ.get('IP')) # Correrlo con Docker
@@ -603,13 +603,14 @@ def get_leader():
     #     leader_ip = node.node_address.ip
     #     leader_port = node.node_address.port
 
-    return {"is_leader":node.is_leader, "node_id":node.nodeID, "node_address":node.node_address, "leader_ip":leader_ip, "leader_port":leader_port}
+    return {"is_leader":node.is_leader, "node_id":node.nodeID, "node_address_ip":node.node_address.ip, "node_address_port":node.node_address.port, "leader_ip":leader_ip, "leader_port":leader_port}
 
 
 def chord_replication_routine():
     print("Started Node Replication Routine")
     print("Timeout: ", TIMEOUT)
     stopped = False
+    discover_timeout = 20
     try:
         while not stopped:
             # Actualizar la lista de nodos con el lider
@@ -683,8 +684,15 @@ def chord_replication_routine():
             # Si es lider entonces:
             # Check for other leaders or nodes on the network
             # Discovering
-            if node.is_leader:
+            if not discover_timeout and node.is_leader:
                 node.discover()
+                print_log(f"Leaders List: {node.leaders_list}")
+                discover_timeout = 21
+            # Update discover_timeout: Iteraciones requeridas para verificar quienes estan en la red,
+            # asi como los que se hayan unido nuevos. Se utiliza para estar atentos a cuando:
+            # se unan o desconecten redes.
+            discover_timeout -= 1
+            print_log(f"Discover Timeout: {discover_timeout}")
             # Reccess
             print(f"On Thread...Sleeping for {TIMEOUT} seconds")
             time.sleep(TIMEOUT)
