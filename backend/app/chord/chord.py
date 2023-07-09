@@ -79,7 +79,10 @@ class ChordNode:
     self.file_path = file_path
     try:
       print_debug("Listing Dir" + str(os.listdir(self.file_path)))
-      self.data[self.nodeID] = os.listdir(self.file_path)
+      self.data[self.nodeID] = os.listdir(self.file_path)[:10] # Se listan todos los archivos que contiene este servidor. 
+      # Se toman solo los primeros 10 para pruebas. Se supone q los archivos que le tocan cambien constantemente. para ello
+      # Sera necesario actualizar este diccionario con los archivos que le corresponde a cada rato
+      # Se adopta la creacion del metodo update_server_files() para este proposito
     except Exception as e:
       print_error(str(e))
       print_error("Error Listing Dir")
@@ -366,6 +369,9 @@ class ChordNode:
       self.update_leaders_list()
       return False
   
+  def update_server_files(self, files:List[str]):
+    self.data[self.nodeID] = files
+
   def get_files(self):
     print(self.data[self.nodeID])
     # TODO: Se supone que luego en self.data[self.nodeID] se encuentre una lista con las replicas de todos los servidores caidos y de el mismo 
