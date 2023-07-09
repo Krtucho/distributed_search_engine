@@ -1,4 +1,4 @@
-import requests
+import requests, os
 
 def extract_filename(file_path: str):
     index = len(file_path) -1
@@ -23,6 +23,18 @@ def download_file(url):
 
     return file_name
 
+def upload_file(url, file_path):
+    # url = 
+    # file_path = os.path.join(self.file_path, file_name)
+    # file_path = os.path.join("txts/", file_name)
+        # response = requests.post(url, files={"file": file})
+        
+    # url = "http://127.0.0.1:10000/upload"
+
+    with open(file_path, "rb") as file:
+        response = requests.post(url, files={"file": file})
+        
+    print(response.text)
 # import urllib.request
 # req = urllib.request.Request('http://localhost:8000/download/main.py',
 #                              headers={'Range': 'bytes=40-'})
@@ -38,3 +50,5 @@ def download_file(url):
 # print(response)
 # print(response.text)
 # print(response.content)
+
+# upload_file("", os.path.join("txts/", "test222.txt"))

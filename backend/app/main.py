@@ -714,7 +714,7 @@ router = APIRouter()
 
 @router.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
-    with open(getcwd() + "/txts" + file.filename, "wb") as myfile:
+    with open(getcwd() + "/uploads/" + file.filename, "wb") as myfile:
         content = await file.read()
         myfile.write(content)
         myfile.close()

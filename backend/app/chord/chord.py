@@ -11,7 +11,7 @@ n = 8
 
 class ChordNode:
 #-
-  def __init__(self, chan: Channel, first_server_address: Address, node_address:Address, file_path="downloads/", default_leader_port=8000):#-
+  def __init__(self, chan: Channel, first_server_address: Address, node_address:Address, file_path="txts/", default_leader_port=8000):#-
     print(f"Started ChordNode for address: {node_address}") 
     self.is_leader = False
     self.leader = first_server_address
@@ -377,8 +377,18 @@ class ChordNode:
     # print(files)
     return files#[data for data in self.data[node_id]]#self.data[self.nodeID]
 
-  def upload_content(self, next_id, next_address, file):
-    return file
+  def upload_content(self, next_id, next_address, file_name):
+
+    # url = "http://tu-servidor.com/upload"
+
+    url = f"http://{next_address.ip}:{next_address.port}/upload"
+    file_path = os.path.join(self.file_path, file_name)
+    # file_path = os.path.join("txts/", file_name)
+    with open(file_path, "rb") as file:
+        response = requests.post(url, files={"file": file})
+        
+    print(response.text)
+    return file_name
 
   def set_confirmation(self, next_id, next_address, files):
     data = {"node_id":self.nodeID, "ip":self.node_address.ip, "port":self.node_address.port, "files":files}
