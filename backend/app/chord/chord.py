@@ -11,8 +11,11 @@ n = 8
 
 class ChordNode:
 #-
-  def __init__(self, chan: Channel, first_server_address: Address, node_address:Address, file_path="txts/", default_leader_port=8000):#-
+  def __init__(self, chan: Channel, first_server_address: Address, node_address:Address, file_path="txts/", default_leader_port=8000, LOCAL=True, hash_type="RANDOM"):#-
     print(f"Started ChordNode for address: {node_address}") 
+
+    self.local = LOCAL# Corriendo local o desde Docker
+    self.hash_type = hash_type
     self.is_leader = False
     self.leader = first_server_address
     self.default_leader_port = default_leader_port
@@ -29,7 +32,7 @@ class ChordNode:
       # self.init_leader()
       self.is_leader = True
       # Build channel properties
-      self.chan = Channel(nBits=m, address=node_address)
+      self.chan = Channel(nBits=m, address=node_address, hash_type=self.hash_type)
       self.nBits   = self.chan.nBits                  # Num of bits for the ID space #-
       self.MAXPROC = self.chan.MAXPROC                # Maximum num of processes     #-
       self.nodeID  = int(self.chan.join('node', node_address.ip, node_address.port)) # Find out who you are         #-
@@ -51,7 +54,7 @@ class ChordNode:
           self.update_leaders_list()
           chan = self.ask_leader_for_channel()
 
-      self.chan    = Channel(nBits=chan["nBits"], address=chan["address"]) # ask channel to leader                        # Create ref to actual channel #-
+      self.chan    = Channel(nBits=chan["nBits"], address=chan["address"], hash_type=self.hash_type) # ask channel to leader                        # Create ref to actual channel #-
       self.nBits   = chan["nBits"]                  # Num of bits for the ID space #-
       self.MAXPROC = chan["MAXPROC"]                # Maximum num of processes     #-
       self.FT      = [None for i in range(self.nBits+1)] # FT[0] is predecessor #-
@@ -100,7 +103,7 @@ class ChordNode:
     while not self.chan or not self.nodeID:
       chan = self.ask_leader_for_channel()  
       
-      self.chan    = Channel(nBits=chan["nBits"], address=chan["address"]) # ask channel to leader                        # Create ref to actual channel #-
+      self.chan    = Channel(nBits=chan["nBits"], address=chan["address"], hash_type=self.hash_type) # ask channel to leader                        # Create ref to actual channel #-
       self.nBits   = chan["nBits"]                  # Num of bits for the ID space #-
       self.MAXPROC = chan["MAXPROC"]                # Maximum num of processes     #-
 
@@ -130,7 +133,7 @@ class ChordNode:
   def init_leader(self):
     self.is_leader = True
     # Build channel properties
-    self.chan = Channel(nBits=m, address=self.node_address)
+    self.chan = Channel(nBits=m, address=self.node_address, hash_type=self.hash_type)
     self.nBits   = self.chan.nBits                  # Num of bits for the ID space #-
     self.MAXPROC = self.chan.MAXPROC                # Maximum num of processes     #-
     if not self.nodeID:
@@ -158,7 +161,7 @@ class ChordNode:
   # Leader
   def ask_for_leaders(self, leader):
     try:
-      r = requests.get(f"http://{leader.ip}:{self.default_leader_port}/chord/channel/leader")
+      r = requests.get(f"http://{leader.ip}:{leader.port}/chord/channel/leader")
       json = r.json()
     except:
       return False
@@ -192,10 +195,14 @@ class ChordNode:
       max_id_node = 0
       max_ip_node:Address = None
       alive_servers = []
-      ips_in_range = Address.get_ips_in_range(self.node_address.ip, 24)
+      ips_in_range = []
+      if self.local:
+        ips_in_range = Address.get_ips_in_range_locals('127.0.0.1')
+      else:
+        ips_in_range = Address.get_ips_in_range(self.node_address.ip, 24)
       # print_log("Ips in range: " + str(ips_in_range))
-      temp_ports = [10000, 10001, 10002, 10003, 10004, 10005, 10006, 10007, 10008, 10009, 10010, 10011, 10012]
-      for address in temp_ports:#Address.get_ips_in_range(self.node_address.ip, 24):
+      # temp_ports = [10000, 10001, 10002, 10003, 10004, 10005, 10006, 10007, 10008, 10009, 10010, 10011, 10012]
+      for address in ips_in_range:#Address.get_ips_in_range(self.node_address.ip, 24):
         # print_info(address.ip)
         # Haz requests por cada ip buscando quien esta vivo y preguntale si es el lider
         try:
@@ -206,7 +213,7 @@ class ChordNode:
           # leader_is_leader = json["is_leader"]
         
           # TODO: Change line below for if address == self.node_address:
-          if address == self.node_address.port: # Do not make a request
+          if address == self.node_address: # Do not make a request
             r = True
             if new_node:
               continue
@@ -217,7 +224,7 @@ class ChordNode:
             # Make a request
             ########
             # r = requests.get(f"http://{address.ip}:{self.default_leader_port}/chord/channel/get_leader")
-            r = requests.get(f"http://127.0.0.1:{address}/chord/channel/get_leader")
+            r = requests.get(f"http://{address.ip}:{address.port}/chord/channel/get_leader")
             # Uncomment Line above
 
             json = r.json()
@@ -318,32 +325,39 @@ class ChordNode:
   # Leader
   # Discovering
   def discover(self):
-    temp_ports = [10000, 10001, 10002, 10003, 10004, 10005, 10006, 10007, 10008, 10009, 10010, 10011, 10012]
-    for address in temp_ports:#Address.get_ips_in_range(self.node_address.ip, 24):
+    # temp_ports = [10000, 10001, 10002, 10003, 10004, 10005, 10006, 10007, 10008, 10009, 10010, 10011, 10012]
+    ips_in_range = []
+    if self.local:
+      ips_in_range = Address.get_ips_in_range_locals('127.0.0.1')
+    else:
+      ips_in_range = Address.get_ips_in_range(self.node_address.ip, 24)
+    for address in ips_in_range:#Address.get_ips_in_range(self.node_address.ip, 24):
       try:
-        # Make a request
-            ########
-            # r = requests.get(f"http://{address.ip}:{self.default_leader_port}/chord/channel/get_leader")
-            r = requests.get(f"http://127.0.0.1:{address}/chord/channel/get_leader")
-            # Uncomment Line above
+          if address == self.node_address:
+            continue
+      # Make a request
+          ########
+          # r = requests.get(f"http://{address.ip}:{self.default_leader_port}/chord/channel/get_leader")
+          r = requests.get(f"http://{address.ip}:{address.port}/chord/channel/get_leader")
+          # Uncomment Line above
 
-            json = r.json()
+          json = r.json()
 
-            print(json)
-            if json: # ve actualizando el nodo con mayor id
-              print("Inside if json")
-              node_id = json["node_id"]
-              leader_is_leader = json["is_leader"] # Dice si el nodo actual al que le estamos preguntando es lider
-              node_address_ip = json["node_address_ip"]
-              node_address_port = json["node_address_port"]
-              leader_ip = json["leader_ip"] # Si el nodo actual al que le estamos preguntando conoce al lider, nos devolvera la ip del mismo
-              leader_port = json["leader_port"] # Si el nodo actual al que le estamos preguntando conoce al lider, nos devolvera el port del mismo
-              node_address = Address(node_address_ip, node_address_port)
-              self.chan.osmembers[node_id] = node_address
-              self.addNode(node_id)
-        # if is a leader add it to leaders list
-              if leader_is_leader:
-                self.leaders_list.append(node_address)
+          print(json)
+          if json: # ve actualizando el nodo con mayor id
+            # print("Inside if json")
+            node_id = json["node_id"]
+            leader_is_leader = json["is_leader"] # Dice si el nodo actual al que le estamos preguntando es lider
+            node_address_ip = json["node_address_ip"]
+            node_address_port = json["node_address_port"]
+            leader_ip = json["leader_ip"] # Si el nodo actual al que le estamos preguntando conoce al lider, nos devolvera la ip del mismo
+            leader_port = json["leader_port"] # Si el nodo actual al que le estamos preguntando conoce al lider, nos devolvera el port del mismo
+            node_address = Address(node_address_ip, node_address_port)
+            self.chan.osmembers[node_id] = node_address
+            self.addNode(node_id)
+      # if is a leader add it to leaders list
+            if leader_is_leader:
+              self.leaders_list.add(node_address)
       except:
         continue
 

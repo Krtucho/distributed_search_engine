@@ -33,6 +33,9 @@ from servers import *
 # Variable para decir si es esta corriendo en local o en docker
 local = True
 
+# Tipo de hash a utilizar
+hash_type = "RANDOM"
+
 try:
     local=bool(os.environ.get("LOCAL"))
 except:
@@ -91,6 +94,13 @@ DEFAULT_LEADER_PORT = 8000
 if not local:
     try:
         DEFAULT_LEADER_PORT = str(os.environ.get('DEFAULT_LEADER_PORT'))
+    except:
+        pass
+
+# Hash
+if not local:
+    try:
+        hash_type = str(os.environ.get('HASH_TYPE'))
     except:
         pass
 
@@ -565,7 +575,9 @@ channel: Channel = None
 node = ChordNode(channel, Address(first_server_address_ip, 
                                   first_server_address_port), 
                             Address(server, port),
-                            default_leader_port = DEFAULT_LEADER_PORT)
+                            default_leader_port = DEFAULT_LEADER_PORT,
+                            LOCAL=local,
+                            hash_type=hash_type)
 channel = node.chan
 # Chord endpoints
 @app.post('/chord/receive/{text}')

@@ -2,6 +2,8 @@ import ipaddress
 import random
 import threading
 
+from chord.utils import hash_key
+
 lock = threading.Lock() 
 
 class Address:
@@ -10,9 +12,9 @@ class Address:
 		self.port = port
 
 	def __eq__(self, __value: object) -> bool:
-		print("Compare->", self, __value)
+		# print("Compare->", self, __value)
 		if isinstance(__value, Address):
-			print("Inside isinstance")
+			# print("Inside isinstance")
 			return self.ip == __value.ip and self.port == __value.port
 		return False
 	
@@ -34,7 +36,11 @@ class Address:
 	@staticmethod
 	def get_ips_in_range(ip_address, network_bits=24):
 		ip_network = ipaddress.IPv4Network(f"{ip_address}/{network_bits}", strict=False)
-		return [Address(str(ip), 80) for ip in ip_network.hosts()]
+		return [Address(str(ip), 8000) for ip in ip_network.hosts()]
+	
+	@staticmethod
+	def get_ips_in_range_locals(ip_address, network_bits=24):
+		return [Address('127.0.0.1', port) for port in range(10000, 10255)]
 
 class PubMessage:
 	def __init__(self, address:Address, msg) -> None:
@@ -46,12 +52,13 @@ class TransportLayer():
 		hosts:list[Address]= []
 
 class Channel():
-	def __init__(self, nBits=5, hostIP='redis', portNo=6379, address=Address("127.0.0.1", 8000)):
+	def __init__(self, nBits=5, hostIP='redis', portNo=6379, address=Address("127.0.0.1", 8000), hash_type="RANDOM"):
 		# self.channel   = 5#redis.StrictRedis(host=hostIP, port=portNo, db=0)
 		self.osmembers:dict = {}
 		self.nBits     = nBits
 		self.MAXPROC   = pow(2, nBits)
 		self.address = address
+		self.hash_type = hash_type
 
 	def get_member(self, node_id:int):
 		node_id:str = str(node_id)
@@ -75,7 +82,10 @@ class Channel():
 	def join(self, subgroup, address, port):
 		with lock:
 			# members = self.channel.smembers('members')
-			newpid = random.choice(list(set([str(i) for i in range(self.MAXPROC)]) - self.get_members()))
+			if self.hash_type == "RANDOM":
+				newpid = random.choice(list(set([str(i) for i in range(self.MAXPROC)]) - self.get_members()))
+			else: # SHA1
+				newpid = hash_key(str(address))
 			# if len(members) > 0:
 			# 	xchan = [[str(newpid), other] for other in members] + [[other, str(newpid)] for other in members]
 			# 	for xc in xchan:
