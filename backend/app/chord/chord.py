@@ -373,7 +373,7 @@ class ChordNode:
     self.data[self.nodeID] = files
 
   def get_files(self):
-    print(self.data[self.nodeID])
+    # print(self.data[self.nodeID])
     # TODO: Se supone que luego en self.data[self.nodeID] se encuentre una lista con las replicas de todos los servidores caidos y de el mismo 
     file_list = [self.data[node_id] for node_id in self.data.keys()]
     files = []

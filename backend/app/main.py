@@ -532,6 +532,7 @@ def index():
 @app.get('/files/search/{text}') #ROXANA
 def show_file(text: str):
     print("ENTRO EN SHOW FILE")
+    print_debug(f"Searching Text... {text}")
     return search_by_text(text)#{"data": id} #DUDA ESPERAR A RESPUESTA DE CARLOS EN EL GRUPO
 
 # Server
