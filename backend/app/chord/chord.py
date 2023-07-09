@@ -438,8 +438,8 @@ class ChordNode:
       print("After update", self.chan.osmembers)
       for node in self.chan.osmembers.keys():
         self.addNode(node)
-    next_id, next_address = self.localSuccNode(self.nodeID)
-    print("Next Node", " Next ID: ", next_id, " Next_address: ", next_address)
+    # next_id, next_address = self.localSuccNode(self.nodeID)
+    # print("Next Node", " Next ID: ", next_id, " Next_address: ", next_address)
 
   def get_succesor(self):
     # if self.FT[1] == None or self.FT[1] == self.nodeID:#len(self.successors) == 0:
@@ -660,7 +660,7 @@ class ChordNode:
       for node in self.chan.osmembers.keys():
         if int(node) == self.nodeID:
           continue
-        print_info("Checking node: "+ node)
+        print_info("Checking node: "+ str(node))
         if not self.node_is_alive(node):
           self.delNode(node)
           self.chan.remove_member(node)
