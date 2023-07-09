@@ -369,7 +369,7 @@ class ChordNode:
       self.update_leaders_list()
       return False
   
-  def update_server_files(self, files:List[str]):
+  def update_server_files(self, files:list):
     self.data[self.nodeID] = files
 
   def get_files(self):
