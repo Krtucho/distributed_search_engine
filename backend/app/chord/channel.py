@@ -81,11 +81,12 @@ class Channel():
 
 	def join(self, subgroup, address, port):
 		with lock:
+			newpid = 0
 			# members = self.channel.smembers('members')
-			if self.hash_type == "RANDOM":
-				newpid = random.choice(list(set([str(i) for i in range(self.MAXPROC)]) - self.get_members()))
-			else: # SHA1
+			if self.hash_type == "SHA1":
 				newpid = hash_key(str(address))
+			else: # SHA1
+				newpid = random.choice(list(set([str(i) for i in range(self.MAXPROC)]) - self.get_members()))
 			# if len(members) > 0:
 			# 	xchan = [[str(newpid), other] for other in members] + [[other, str(newpid)] for other in members]
 			# 	for xc in xchan:

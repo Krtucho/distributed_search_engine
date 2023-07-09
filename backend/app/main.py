@@ -37,11 +37,13 @@ local = True
 hash_type = "RANDOM"
 
 try:
-    local=bool(os.environ.get("LOCAL"))
+    if str(os.environ.get("LOCAL")) == "False":
+        local=False
+    print_debug(f"local: {local}")
 except:
     local = True
 #LO PONGO MANUAL
-local = True
+# local = True
 # Docker
 gateway = "172.21.0.1"
 
@@ -101,6 +103,7 @@ if not local:
 if not local:
     try:
         hash_type = str(os.environ.get('HASH_TYPE'))
+        print_debug(f"Hash type: {hash_type}")
     except:
         pass
 
