@@ -88,6 +88,8 @@ filepath = "/txts/"
 if not local:
     try:
         filepath = str(os.environ.get('FILEPATH')) # Correrlo con Docker
+        if filepath == "None":
+            filepath = "/txts/"
     except:
         pass
 
@@ -95,7 +97,7 @@ if not local:
 DEFAULT_LEADER_PORT = 8000
 if not local:
     try:
-        DEFAULT_LEADER_PORT = str(os.environ.get('DEFAULT_LEADER_PORT'))
+        DEFAULT_LEADER_PORT = int(os.environ.get('DEFAULT_LEADER_PORT'))
     except:
         pass
 
