@@ -610,7 +610,7 @@ def chord_replication_routine():
     print("Started Node Replication Routine")
     print("Timeout: ", TIMEOUT)
     stopped = False
-    discover_timeout = 20
+    discover_timeout = 3
     try:
         while not stopped:
             # Actualizar la lista de nodos con el lider
@@ -687,10 +687,12 @@ def chord_replication_routine():
             if not discover_timeout and node.is_leader:
                 node.discover()
                 print_log(f"Leaders List: {node.leaders_list}")
-                discover_timeout = 21
             # Update discover_timeout: Iteraciones requeridas para verificar quienes estan en la red,
             # asi como los que se hayan unido nuevos. Se utiliza para estar atentos a cuando:
             # se unan o desconecten redes.
+            if discover_timeout <= 0:
+                discover_timeout = 21
+
             discover_timeout -= 1
             print_log(f"Discover Timeout: {discover_timeout}")
             # Reccess
