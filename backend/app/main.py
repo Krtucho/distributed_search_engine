@@ -216,8 +216,13 @@ def search_to_download(number: str): #ROXANA
     print(number)
     threading_list = []
     results_files_download = [] # List with the ranking and query documents results
-    for i, port in enumerate(ports_list): # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
-        server = f'http://{clusters[0]}:{port}/api/download/{number}'
+    for i, member in enumerate(node.chan.osmembers.items()): # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
+        print(f"MEMBER {member}")
+        print(f"ESTOY EN EL LLAMADO DE LOS HILOS: IP = {member[1].ip}")
+        print(f"server = {node.node_address.ip}")
+        if member[1].ip == node.node_address.ip:
+            continue
+        server = f'http://{member[1].ip}:{member[1].port}/api/download/{number}'
         t = threading.Thread(target=send_notification, args=(server, results_files_download, [], False), name="Hilo {}".format(i))
         threading_list.append(t)
         print("T.START")
@@ -247,9 +252,14 @@ def search_by_text(text: str): #ROXANA
     # Construir ranking a partir de cada listado de archivos recibidos gracias al tf_idf
     # Search text in every server
     # TODO: Paralelizar peticiones a todos los servidores para pedirles sus rankings. https://docs.python.org/es/3/library/multiprocessing.html
-    for i, port in enumerate(ports_list): # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
-        server = f'http://{clusters[0]}:{port}/api/files/search/{text}'
-        t = threading.Thread(target=send_notification, args=(server, results_name, results_ranking), name="Hilo {}".format(i))
+    for i, member in enumerate(node.chan.osmembers.items()): # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
+        print(f"MEMBER {member}")
+        print(f"ESTOY EN EL LLAMADO DE LOS HILOS: IP = {member[1].ip}")
+        print(f"server = {server}")
+        if member[1].ip == node.node_address.ip:
+            continue
+        server_local = f'http://{member[1].ip}:{member[1].port}/api/files/search/{text}'
+        t = threading.Thread(target=send_notification, args=(server_local, results_name, results_ranking), name="Hilo {}".format(i))
         threading_list.append(t)
         print("T.START")
         t.start()
@@ -840,7 +850,7 @@ router = APIRouter()
 
 @router.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
-    with open(getcwd() + "/uploads/" + file.filename, "wb") as myfile:
+    with open(getcwd() + "/txts/" + file.filename, "wb") as myfile:
         content = await file.read()
         myfile.write(content)
         myfile.close()

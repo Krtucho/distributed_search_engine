@@ -1,12 +1,28 @@
 # Distributed Search Engine
 
 #### @Krtucho Carlos Carret Miranda - C412
-#### @prp97 Paula Rodriguez Perez - C412
+#### @prp97 Paula Rodriguez Perez - C411
 #### @Selleen Roxana Pena Mendieta - C412
 
 # Documentacion
 
 ## Arquitectura
+
+Server1, Server2, Server3 y el mismo Server forman parte de la red de Chord de la segunda representacion. Es decir pueden ser ChordServer1...ChordServerN.
+```mermaid
+graph LR;
+    Client-->Server;
+    Server-->Client;
+    Server<--> Server1;
+    Server<--> Server2;
+    Server<--> Server3;
+    ChordServer1 ---> ChordServer2;
+    ChordServer2 ---> ChordServer3;
+    ChordServer3 ---> ChordServer4;
+    ChordServer4 ---> ChordServerN;
+    ChordServerN ---> ChordServer1;
+    
+```
 
 Se implemento una arquitectura Publisher/Subscriber(Publicador/Subscriptor) donde todos los servidores van a estar a la espera de nuevas notificaciones, las cuales seran peticiones de alguna consulta por un nombre de un archivo o el contenido del mismo.
 

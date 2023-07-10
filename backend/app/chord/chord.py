@@ -401,14 +401,17 @@ class ChordNode:
 
     # url = "http://tu-servidor.com/upload"
 
-    url = f"http://{next_address.ip}:{next_address.port}/upload"
-    file_path = os.path.join(self.file_path, file_name)
-    # file_path = os.path.join("txts/", file_name)
-    with open(file_path, "rb") as file:
-        response = requests.post(url, files={"file": file})
-        
-    print(response.text)
-    return file_name
+    try:
+      url = f"http://{next_address.ip}:{next_address.port}/upload"
+      file_path = os.path.join(self.file_path, file_name)
+      # file_path = os.path.join("txts/", file_name)
+      with open(file_path, "rb") as file:
+          response = requests.post(url, files={"file": file})
+          
+      print(response.text)
+      return file_name
+    except:
+      return False
 
   def set_confirmation(self, next_id, next_address, files):
     data = {"node_id":self.nodeID, "ip":self.node_address.ip, "port":self.node_address.port, "files":files}
