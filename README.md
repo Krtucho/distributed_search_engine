@@ -92,6 +92,11 @@ Variables de entorno y parametros que nos interesan:
 -e LOCAL=<correr_server_de_forma_local_o_en_Docker>
 ```
 
+Para poner un ejemplo de como correrlo, supongamos que mi nombre de usuario sea krtucho y mi gateway sea 172.21.0.1. Esta seria mi linea para correr un servidor backend rapidamente:
+
+```bash
+sudo docker run -it --rm --name backend --network fastapi-quasar --ip 172.21.0.2 -e FIRST_SERVER=172.21.0.2 -e IP=172.21.0.2 -e PORT=8000 -e LOCAL=False -v /home/krtucho/nltk_data:/usr/share/nltk_data fastapi-files
+```
 ### Correr Servidor Frontend
 Primeramente creamos la imagen de Docker:
 ```bash
@@ -112,6 +117,33 @@ Variables de entorno y parametros que nos interesan:
 -e API_SERVER=<ip_del_servidor_backend_para_peticiones> 
 ```
 
+#### Errores comunes!
+Si al hacer las peticiones al servidor Backend desde el visual(Frontend) nos salta algun mensaje de error de CORS POLICY. Modificamos las lineas correspondiente a esto en el archivo /backend/app/main.py:
+
+```python
+# Configuración de CORS
+origins = [
+    "http://127.0.0.1",
+    "http://127.0.0.1:8080",
+    "http://172.17.0.3",
+    "http://172.17.0.3:8080",
+    "http://172.17.0.1",
+    "http://172.17.0.1:8080",
+    "http://172.17.0.2",
+    "http://172.17.0.2:8080"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+Modificando la lista origins, agregando la nueva ip que desde la que estamos corriendo el servidor Frontend.
+
 Para mas detalles ver la seccion siguiente
 
 # Mas Detalles
@@ -122,13 +154,13 @@ Se iran describiendo las variables de entorno que se le pueden pasar al servidor
 - El servidor esta configurado para intentar conectarse a un servidor principal <FIRST_SERVER> y cada vez que vaya a intentar conectarse con ciertos servidores para descrubrirlos lo intentara hacer por el puerto <DEFAULT_LEADER_PORT>.
 - Por defecto la funcion de hash para otorgar un ID a los nodos es la funcion random de Python. Pero si se desea utilizar una funcion de hash sha1 se puede pasar la misma a <HASH_TYPE>
 - Los servidores guardaran sus archivos en la ruta /txts/ pero con la variable <FILE_PATH> esto se puede modificar.
-- Entre cada iteracion de nuestro hilo principal se hace una pequenna pausa para que no se esten haciendo peticiones todo el tiempo. Esto se puede modificar con <TIMEOUT>
+- Entre cada iteracion de nuestro hilo principal se hace una pequenna pausa para que no se esten haciendo peticiones todo el tiempo. Esto se puede modificar con >TIMEOUT<
 
 
 Ahora las variables que ya vimos
 - <FIRST_SERVER> es utilizado como el primer servidor al que intentara conectarse un nodo.
-- Sera necesario suministrar una <IP>(ip) y un <PORT> (port) a nuestro algoritmo, que este debera de coincidir con el que le pasamos a la red de Docker
-- Es muy importancia poner el valor de False a la variable <LOCAL> porque en caso de no hacerlo nuestro servidor funcionara de forma local, en este caso solo tendra comunicacion entre si mismo con sus respectivos puertos.
+- Sera necesario suministrar una >IP<(ip) y un >PORT< (port) a nuestro algoritmo, que este debera de coincidir con el que le pasamos a la red de Docker
+- Es muy importancia poner el valor de False a la variable >LOCAL< porque en caso de no hacerlo nuestro servidor funcionara de forma local, en este caso solo tendra comunicacion entre si mismo con sus respectivos puertos.
 
 Luego las variables que tenemos son:
 ```
