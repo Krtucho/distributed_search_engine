@@ -133,7 +133,9 @@ origins = [
     "http://172.17.0.3",
     "http://172.17.0.3:8080",
     "http://172.17.0.1",
-    "http://172.17.0.1:8080"
+    "http://172.17.0.1:8080",
+    "http://172.17.0.2",
+    "http://172.17.0.2:8080"
 ]
 
 app.add_middleware(
@@ -267,23 +269,37 @@ def search_by_text(text: str): #ROXANA
     results_name_str = decorate_data(results_name)
     results_ranking_str = decorate_data(results_ranking)
 
-    return results_name_str, results_ranking_str
+    result = results_name_str + results_ranking_str
+    
+    # return results_name_str, results_ranking_str
+
+    return result
 
 def decorate_data(results): #ROXANA
     print("ENTRO A DECORATE DATA")
     print("results ", results)
-    final_string = {}
+    result = []
+    # final_string = {}
     for i, elem in enumerate(results):
+        final_string = {}
         print("*final_string ", final_string)
         print(f"i={i}, elem= {elem}")
         print("elem[0] ", elem[0])
         print("elem[1] ", elem[1])
-        final_string[f"id_{i}"] = elem[0]
-        final_string[f"name_{i}"] = elem[1]
+        # final_string[f"id_{i}"] = elem[0]
+        # final_string[f"name_{i}"] = elem[1]
+        # # final_string[f"url__{i}"] = 'https://localhost:3000'
+        # final_string[f"url_{i}"] = f'https://{server}:{port}'
+        final_string[f"id"] = elem[0]
+        final_string[f"name"] = elem[1]
         # final_string[f"url__{i}"] = 'https://localhost:3000'
-        final_string[f"url_{i}"] = f'https://{server}:{port}'
-    print("final string ", final_string)
-    return final_string
+        # final_string[f"url"] = f'https://{server}:{port}'
+        final_string[f"url"] = f'http://{server}:{port}/download/{str(elem[0])}'
+        result.append(final_string)
+    # print("final string ", final_string)
+    print("*********---------------------------------------", result)
+    # return final_string
+    return result
 
 
 def decorate_data_rank(ranking: list): 
