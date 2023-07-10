@@ -224,7 +224,7 @@ class ChordNode:
             # Make a request
             ########
             # r = requests.get(f"http://{address.ip}:{self.default_leader_port}/chord/channel/get_leader")
-            r = requests.get(f"http://{address.ip}:{address.port}/chord/channel/get_leader")
+            r = requests.get(f"http://{address.ip}:{address.port}/chord/channel/get_leader", timeout=1)
             # Uncomment Line above
 
             json = r.json()
