@@ -67,7 +67,7 @@ if not local:
 stopped = False
 
 server = '127.0.0.1'
-port = 10000 # Correrlo local
+port = 10001 # Correrlo local
 
 if not local:
     server = str(os.environ.get('IP')) # Correrlo con Docker
@@ -173,8 +173,7 @@ def send_notification(server:str, results_name, results_ranking, notification_ty
     with lock:
         print("ENTRO EN SEND NOTIFICATION")
         print("Hilo en ejecución: {}".format(threading.current_thread().name))
-        print("clusters[0] = ",clusters[0])
-        print("server = ", server)
+        print(f"server = {node.node_address.ip}, PORT = {node.node_address.port}")
         result = requests.get(server, verify=False)
          
         print("\R:")
@@ -254,8 +253,11 @@ def search_by_text(text: str): #ROXANA
     for i, member in enumerate(node.chan.osmembers.items()): # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
         print(f"MEMBER {member}")
         print(f"ESTOY EN EL LLAMADO DE LOS HILOS: IP = {member[1].ip}")
-        print(f"server = {node.node_address.ip}")
-        if member[1].ip == node.node_address.ip:continue
+        print(f"server = {node.node_address.ip}, PORT = {node.node_address.port}")
+        # Si se esta probando con docker o varias pcs la condicion del if es q no sea el mismo ip
+        #if member[1].ip == node.node_address.ip:continue 
+        # Si se esta probando local entonces la condicion del if es q no sea el mismo port
+        if member[1].port == node.node_address.port:continue 
         server = f'http://{member[1].ip}:{member[1].port}/api/files/search/{text}'
         t = threading.Thread(target=send_notification, args=(server, results_name, results_ranking), name="Hilo {}".format(i))
         threading_list.append(t)
@@ -344,10 +346,10 @@ def match_by_name(text:str): #ROXANA
             print("result[1]",t[1])
             print()
 
-    print("RESULTADO ALL AUTHORS",result_3)
-    print("RESULTADO por AUTHOR, Title",result_1)
-    print("RESULTADO ALL Titles",result_4)
-    print("RESULTADO TITULOS SELECCIONADOS ", result_2)
+    print("-------------RESULTADO ALL AUTHORS",result_3)
+    print("-------------RESULTADO por AUTHOR, Title",result_1)
+    print("-------------RESULTADO ALL Titles",result_4)
+    print("-------------RESULTADO TITULOS SELECCIONADOS ", result_2)
     return result_1 + result_2 
 
 
@@ -521,7 +523,7 @@ def api_replication(rango:str):
     for  i in range(prev_id,newserver_id):
         new_docs_replicated.append(f"document_{i}.txt")
 
-    print("new_docs_replicated = ", new_docs_replicated)
+    print(f"new_docs_replicated = {new_docs_replicated}, len = {len(new_docs_replicated)}")
     text_list = convert_text_to_text_class(PATH_TXTS,new_docs_replicated)
 
     for file in text_list:
@@ -601,14 +603,16 @@ def show_file(text: str):
     return response_me
 
 def find_in_myself(text):
-    print("----------------------ENTRO A SEARCH FILE IN DB")
+    print("----------------------ENTRO A find_in_myself")
     print("Hilo en ejecución: {}".format(threading.current_thread().name))
     matched_documents = match_by_name(text)
     print("matched documents ", matched_documents)
     if matched_documents == []:
         #Calcularel tf_idf #{"data": id}
+        print(f"-----------ENTRO AL TF_IDF pq matched_documents = []")
         return [tf_idf(text),False] #El booleano: PARA SABER SI LO QUE DEVUELVE EL METODO ES QUE MATCHEO CON NOMBRE O CON EL RANKING
     else:
+        print(f"----------DEVOLVIO BIEN matched_documents")
         return [matched_documents, True]
     
 # Server
@@ -616,7 +620,7 @@ def find_in_myself(text):
 @app.get('/api/files/search/{text}') 
 def search_file_in_db(text: str): #ROXANA
     print("----------------------ENTRO A SEARCH FILE IN DB")
-    find_in_myself(text)
+    return find_in_myself(text)
 
 
 @app.post("/files")
