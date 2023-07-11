@@ -21,7 +21,6 @@ class DataB:
         self.datab = ""
         
     def insert_file(self, text_file: Text):     
-        print("ENTRO EN INSERT FILE")
         create_users = """INSERT INTO
         File(ID,Title, Author, Body)
         VALUES
@@ -30,7 +29,6 @@ class DataB:
         self.execute_query(create_users, text_file)
         
     def remove_file(self, id_doc: int):
-        print("ENTRE A REMOVE FILE")
         delete_file = f"""DELETE FROM File WHERE ID = {id_doc};"""
         self.execute_query(delete_file, "")
 
@@ -50,21 +48,14 @@ class DataB:
 
 
     def close_connection(self):
-        print("ENtro en CLose Connection")
         self.cursor.close()
         self.connection.close()
-        print("Valor del cursor = ", self.cursor)
-        print("Valor de connection = ", self.connection)
-    
+      
     def open_connection(self):
-        print("ENtro en OPEN Connection")
         self.connection = sqlite3.connect(self.datab)
         self.cursor = self.connection.cursor()
-        print("Valor del cursor = ", self.cursor)
-        print("Valor de connection = ", self.connection)
         
     def create_connection(self, path):
-        print("ENTRO EN CREATE CONNECTION")
         try:
             self.datab = path
             create_files_table = '''
@@ -78,14 +69,10 @@ class DataB:
             self.execute_query(create_files_table, "")
             print("Connection to SQLiteDB successful")
         except Error as e:
-            print("ERROR EN CREATE CONNECTION")
-            print("PATH = ", path)
             print(f"The error '{e}' ocurred")
             
     def execute_read_query(self, query):
-        print("ENTRO EN EXECUTE READ QUERY")
         self.open_connection()
-        print("SELF connection ", self.connection)
         print("QUERY ", query)
         result = None
         try:
@@ -93,13 +80,11 @@ class DataB:
             result = self.cursor.fetchall()
             return result
         except Error as e:
-            print("ERROR EN EXECUTE READ QUERY")
             print(f"The error '{e}' occurred")
         self.close_connection()
 
     def execute_query(self, query, text_file):
         self.open_connection()
-        print("ENtrO EN EXECUTE QUERY")
         try:
             if text_file != "":
                 self.cursor.execute(query, (text_file.id, text_file.title, text_file.author, text_file.body))
@@ -108,7 +93,6 @@ class DataB:
             self.connection.commit()
             print("Query executed successfully")
         except Error as e:
-            print("ERROR EN EXECUTE QUERY")
             print(f"The error '{e}' ocurred")
         self.close_connection()
 

@@ -67,7 +67,7 @@ if not local:
 stopped = False
 
 server = '127.0.0.1'
-port = 10001 # Correrlo local
+port = 10000 # Correrlo local
 
 if not local:
     server = str(os.environ.get('IP')) # Correrlo con Docker
@@ -390,7 +390,7 @@ def assign_documents(start, end, datab, name_db): #ROXANA
     for  i in range(start,end):
         docs_to_add.append(f"document_{i}.txt")
 
-    print("docs_to_add = ", docs_to_add)
+    print(f"docs_to_add en assign_documents = {docs_to_add},  len = {len(docs_to_add)}")
     text_list = convert_text_to_text_class(PATH_TXTS,docs_to_add)
     #A cada servidor le toca un archivo.db que se asigna en dependencia de su puerto
     print("DATABASE_DIR ", DATABASE_DIR + "/"+ name_db)
@@ -496,10 +496,11 @@ def replication_files(next_address):
         if prev_id[0] > current_id:# Si mi predecesor es mayor q yo entonces q empiece desde el principio q es 0
             rango = f'1_{current_id + 1}'
         else:
-            rango = f'{prev_id[0]}_{current_id + 1}'
+            rango = f'{prev_id[0] + 1}_{current_id + 1}'
         print(f"RANGO = {rango}")
         server_str = f'http://{next_address.ip}:{next_address.port}/api/replication/{rango}'
         try:
+            print("-------va a hacer el request api/replication")
             new_docs_replicated = requests.get(server_str, verify=False)
         except:
             print(f"DIO ERROR EN EL REQUEST.GET")
@@ -534,7 +535,7 @@ def api_replication(rango:str):
         docs_to_add.append(doc)
         
     print(check_files)
-    print(f"doc_to_add = {docs_to_add}")
+    print(f"documentos actuales en API REPLICATION = {docs_to_add}, len = {len(docs_to_add)}")
     node.update_server_files(docs_to_add)
 
 class File(BaseModel):
@@ -588,18 +589,20 @@ def index():
 # Cliente
 @app.get('/files/search/{text}') #ROXANA
 def show_file(text: str):
-    print("ENTRO EN SHOW FILE")
+    print("-------------ENTRO EN SHOW FILE")
     print_debug(f"Searching Text... {text}")
-    return search_by_text(text)#{"data": id} #DUDA ESPERAR A RESPUESTA DE CARLOS EN EL GRUPO
+    #buscar en el propio server primero
+    response_me = find_in_myself(text)
+    print(f"response_me = {response_me}")
+    response_others =  search_by_text(text)#{"data": id} #DUDA ESPERAR A RESPUESTA DE CARLOS EN EL GRUPO
+    print(f"response_others = {response_others}")
+    response_me.extend(response_others)
+    print(f"response_me unido con response_others = {response_me}")
+    return response_me
 
-# Server
-# Este es el que llama al TF-IDF
-@app.get('/api/files/search/{text}') 
-def search_file_in_db(text: str): #ROXANA
+def find_in_myself(text):
     print("----------------------ENTRO A SEARCH FILE IN DB")
     print("Hilo en ejecución: {}".format(threading.current_thread().name))
-    #datab = DataB() #crear una nueva database en cada hilo
-    #init_servers(datab)
     matched_documents = match_by_name(text)
     print("matched documents ", matched_documents)
     if matched_documents == []:
@@ -607,6 +610,13 @@ def search_file_in_db(text: str): #ROXANA
         return [tf_idf(text),False] #El booleano: PARA SABER SI LO QUE DEVUELVE EL METODO ES QUE MATCHEO CON NOMBRE O CON EL RANKING
     else:
         return [matched_documents, True]
+    
+# Server
+# Este es el que llama al TF-IDF
+@app.get('/api/files/search/{text}') 
+def search_file_in_db(text: str): #ROXANA
+    print("----------------------ENTRO A SEARCH FILE IN DB")
+    find_in_myself(text)
 
 
 @app.post("/files")
@@ -733,7 +743,7 @@ def remove_doc_api(rango:str):
         docs_to_add.append(doc)
         
     print(check_files)
-    print(f"doc_to_add = {docs_to_add}")
+    print(f"documentos actuales en el remove_doc_api = {docs_to_add}, len = {len(docs_to_add)}")
     node.update_server_files(docs_to_add)
 
 # Leader
@@ -792,6 +802,7 @@ def chord_replication_routine():
                 if not text:
                     #   Si no se ha replicado, replicalo!
                     node.make_replication(next_id, next_address)
+                    print("------------VA A ENTRAR EN REPLICATION FILES 1")
                     replication_files(next_address)
             # Si el siguiente se cayo, vuelvela a copiar, busca primero el nodo
             else:
@@ -799,6 +810,7 @@ def chord_replication_routine():
                 node.succ = node.get_succesor()
                 if node.succ:
                     node.make_replication(next_id, next_address)
+                    print("------------VA A ENTRAR EN REPLICATION FILES 2")
                     replication_files(next_address)
             # Busca si el de atras ya existe:
             if node.predecessor:
@@ -816,6 +828,7 @@ def chord_replication_routine():
                     # Este nuevo contenido pasaselo a tu sucesor si es q no ha cambiado, si cambio, pasale el nuevo contenido mas
                     # el tuyo
                     node.make_replication(next_id, next_address, content)
+                    print("------------VA A ENTRAR EN REPLICATION FILES 3")
                     replication_files(next_address)
                     # TODO: FixBug TypeError: 'NoneType' object does not support item assignment
                     print_debug("Predecessors" + str(node.predecessor))
