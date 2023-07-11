@@ -28,7 +28,12 @@ class DataB:
         (?, ?, ?, ?);
         """
         self.execute_query(create_users, text_file)
-    
+        
+    def remove_file(self, id_doc: int):
+        print("ENTRE A REMOVE FILE")
+        delete_file = f"""DELETE FROM File WHERE ID = {id_doc};"""
+        self.execute_query(delete_file, "")
+
     def get_documents(self):
         docs = []
         query = "SELECT * FROM File;"

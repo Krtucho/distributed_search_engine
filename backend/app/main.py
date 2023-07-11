@@ -56,7 +56,7 @@ servers:List[Address] = get_servers(local)
 clusters = ['127.0.0.1']
 
 # Chord
-first_server_address_ip = '127.0.0.1' # Correrlo local
+first_server_address_ip = '127.0.0.1' # Correrlo local   '172.20.10.2'
 first_server_address_port = 10000  # Correrlo local
 
 if not local:
@@ -67,7 +67,7 @@ if not local:
 stopped = False
 
 server = '127.0.0.1'
-port = 10000 # Correrlo local
+port = 10001 # Correrlo local
 
 if not local:
     server = str(os.environ.get('IP')) # Correrlo con Docker
@@ -220,8 +220,7 @@ def search_to_download(number: str): #ROXANA
         print(f"MEMBER {member}")
         print(f"ESTOY EN EL LLAMADO DE LOS HILOS: IP = {member[1].ip}")
         print(f"server = {node.node_address.ip}")
-        if member[1].ip == node.node_address.ip:
-            continue
+        if member[1].ip == node.node_address.ip:continue
         server = f'http://{member[1].ip}:{member[1].port}/api/download/{number}'
         t = threading.Thread(target=send_notification, args=(server, results_files_download, [], False), name="Hilo {}".format(i))
         threading_list.append(t)
@@ -255,11 +254,10 @@ def search_by_text(text: str): #ROXANA
     for i, member in enumerate(node.chan.osmembers.items()): # Esta parte sera necesaria hacerla sincrona para recibir cada respuesta en paralelo y trabajar con varios hilos
         print(f"MEMBER {member}")
         print(f"ESTOY EN EL LLAMADO DE LOS HILOS: IP = {member[1].ip}")
-        print(f"server = {server}")
-        if member[1].ip == node.node_address.ip:
-            continue
-        server_local = f'http://{member[1].ip}:{member[1].port}/api/files/search/{text}'
-        t = threading.Thread(target=send_notification, args=(server_local, results_name, results_ranking), name="Hilo {}".format(i))
+        print(f"server = {node.node_address.ip}")
+        if member[1].ip == node.node_address.ip:continue
+        server = f'http://{member[1].ip}:{member[1].port}/api/files/search/{text}'
+        t = threading.Thread(target=send_notification, args=(server, results_name, results_ranking), name="Hilo {}".format(i))
         threading_list.append(t)
         print("T.START")
         t.start()
@@ -383,41 +381,6 @@ def check_database(number):
     query = f"SELECT ID FROM File WHERE File.ID = '{number}'"
     result_ID = database.execute_read_query(query)
     return result_ID
-
-# Este metodo carga la base de datos del server al ser levantado este
-# Asumo que conozco los IPs de cada servidor y la cantidad de servidores 
-#def init_servers(datab): #ROXANA
-#    print("INIT SERVERS")
-#    print("len(servers_list ", len(servers_list))
-#    for i, s in enumerate(sorted(servers_list)):
-#        print("index ", i)
-#        print(f"s == server_ip: {s}=={server_ip}")
-#        if s == server_ip:
-#            files_list = assign_documents(i)
-#            print("files_list ", files_list)
-#            print("PATH_TXTS ", PATH_TXTS)
-#            text_list = convert_text_to_text_class(PATH_TXTS,files_list)
-#            #A cada servidor le toca un archivo.db que se asigna en dependencia de su puerto
-#            print(DATABASE_DIR + "/"+ database_files[change_db])
-#            datab.create_connection(DATABASE_DIR + "/"+ database_files[change_db]) #MODIFICAR CAMBIAR ITERACION
-#            for file in text_list:
-#                datab.insert_file(file)
-#
-#            ######### SRI #########
-#            vec_mod.doc_terms_data(text_list) # se le pasa la lista de archivos que se le pasa a la base de datos de ese server
-#                                              # aqui empieza a calc os tf idf
-#            # print(vec_mod.doc_terms)
-#            #######################
-#
-#    # node.run() #CARLOS
-#    print("Node Run")
-#    # t1 = threading.Thread(target=node.run)
-#    t2 = threading.Thread(target=chord_replication_routine)
-#
-#    # t1.start()
-#    t2.start()
-#
-#    print("SALIO DEL INIT")
     
 #asignar los documentos a cada server segun el orden en la lista
 def assign_documents(start, end, datab, name_db): #ROXANA
@@ -440,7 +403,8 @@ def assign_documents(start, end, datab, name_db): #ROXANA
                                       # aqui empieza a calc os tf idf
     # print(vec_mod.doc_terms)
     #######################
-
+    
+    node.update_server_files(docs_to_add)
     # node.run() #CARLOS
     print("Node Run")
     # t1 = threading.Thread(target=node.run)
@@ -456,6 +420,7 @@ def assign_documents(start, end, datab, name_db): #ROXANA
 def init_servers(datab, name_db):
     print("ENTRO A init_servers")
     miembros = node.chan.osmembers
+    print(f"GET MEMBERS = {node.get_members()}")
     n = len(miembros.keys())
     print("miembros = ", miembros)
     print("n = ", n)
@@ -485,6 +450,8 @@ def init_servers(datab, name_db):
             assign_documents(start,newserver_id + 1, datab, name_db)
             # Quitar a la BD del sucesor del nuevo server los docs que le tocan al nuevo a traves de un endpoint
             print("i <= n - 2 = ", i <= n - 2)
+            print(f"----------i = {i}")
+            print(f"----------n - 2 = {n -2}")
             if i <= n - 2:
                 rango = f'{start}_{newserver_id + 1}'
                 succ_ip = new_members[i + 1][1]['ip']
@@ -494,10 +461,11 @@ def init_servers(datab, name_db):
                 requests.delete(server_str, verify=False)
 
         new_id = int(new_members[i][0])
-        if n == 1:
+        try:
+        # if n == 1:
             new_ip = new_members[i][1].ip
             new_port = new_members[i][1].port
-        else:
+        except:
             new_ip = new_members[i][1]['ip']
             new_port = new_members[i][1]['port']
 
@@ -520,6 +488,54 @@ def init_servers(datab, name_db):
 
     print("SALIO DEL INIT")
 
+def replication_files(next_address):
+    print(f"-------ENTRO EN replication_files")
+    current_id = node.nodeID
+    prev_id = node.predecessor
+    if prev_id != None:
+        if prev_id[0] > current_id:# Si mi predecesor es mayor q yo entonces q empiece desde el principio q es 0
+            rango = f'1_{current_id + 1}'
+        else:
+            rango = f'{prev_id[0]}_{current_id + 1}'
+        print(f"RANGO = {rango}")
+        server_str = f'http://{next_address.ip}:{next_address.port}/api/replication/{rango}'
+        try:
+            new_docs_replicated = requests.get(server_str, verify=False)
+        except:
+            print(f"DIO ERROR EN EL REQUEST.GET")
+    
+
+@app.get('/api/replication/{rango}') # ROXANA
+def api_replication(rango:str):
+    print(f"-------------ENTRO EN API REPLICATION")
+    print(f"RANGO = {rango}")
+    new_docs_replicated = []
+    pos = rango.find('_')
+    print("pos = ", pos)
+    prev_id = int(rango[:pos])
+    print("prev_id = ", prev_id)
+    newserver_id = int(rango[pos + 1:])
+    print("newserver_id = ", newserver_id)
+    
+    for  i in range(prev_id,newserver_id):
+        new_docs_replicated.append(f"document_{i}.txt")
+
+    print("new_docs_replicated = ", new_docs_replicated)
+    text_list = convert_text_to_text_class(PATH_TXTS,new_docs_replicated)
+
+    for file in text_list:
+        database.insert_file(file)
+    
+    check_files = f"SELECT ID FROM File"
+    result = database.execute_read_query(check_files)
+    docs_to_add = []
+    for i in result:
+        doc = f"document_{i[0]}.txt"
+        docs_to_add.append(doc)
+        
+    print(check_files)
+    print(f"doc_to_add = {docs_to_add}")
+    node.update_server_files(docs_to_add)
 
 class File(BaseModel):
     file_name: str
@@ -698,7 +714,7 @@ def verify_data(address: AddressModel):
 
 @app.delete('/api/remove_doc/{rango}') # ROXANA
 def remove_doc_api(rango:str):
-    print("ENTRO A REMOVE DOC API")
+    print("--------------------ENTRO A REMOVE DOC API")
     pos = rango.find('_')
     print("pos = ", pos)
     prev_id = int(rango[:pos])
@@ -711,8 +727,15 @@ def remove_doc_api(rango:str):
     
     check_files = f"SELECT ID FROM File"
     result = database.execute_read_query(check_files)
-    print("result check_files = ", result)
-    
+    docs_to_add = []
+    for i in result:
+        doc = f"document_{i[0]}.txt"
+        docs_to_add.append(doc)
+        
+    print(check_files)
+    print(f"doc_to_add = {docs_to_add}")
+    node.update_server_files(docs_to_add)
+
 # Leader
 @app.get('/chord/channel/leader')
 def is_leader():
@@ -769,13 +792,14 @@ def chord_replication_routine():
                 if not text:
                     #   Si no se ha replicado, replicalo!
                     node.make_replication(next_id, next_address)
+                    replication_files(next_address)
             # Si el siguiente se cayo, vuelvela a copiar, busca primero el nodo
             else:
                 node.update_succesors()
                 node.succ = node.get_succesor()
                 if node.succ:
                     node.make_replication(next_id, next_address)
-
+                    replication_files(next_address)
             # Busca si el de atras ya existe:
             if node.predecessor:
 
@@ -792,6 +816,7 @@ def chord_replication_routine():
                     # Este nuevo contenido pasaselo a tu sucesor si es q no ha cambiado, si cambio, pasale el nuevo contenido mas
                     # el tuyo
                     node.make_replication(next_id, next_address, content)
+                    replication_files(next_address)
                     # TODO: FixBug TypeError: 'NoneType' object does not support item assignment
                     print_debug("Predecessors" + str(node.predecessor))
                     node.restart_pred_data_info(node.predecessor[0])

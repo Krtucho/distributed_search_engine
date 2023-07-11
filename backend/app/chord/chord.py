@@ -119,9 +119,9 @@ class ChordNode:
     self.update_succesors()
     succ = self.get_succesor() # succ seria el id(llave)
     print("Members", self.chan.osmembers)
-    if succ:
-      member = Address.extract_ip_port(self.chan.get_member(succ)) # member seria una direccion(Address)
-      self.make_replication(succ, member)
+    # if succ:
+    #   member = Address.extract_ip_port(self.chan.get_member(succ)) # member seria una direccion(Address)
+    #   self.make_replication(succ, member)
 
   def __repr__(self):
     return f"NODO: Address: {self.node_address} node_id: {self.nodeID} successors: {self.successors} predecessor: {self.predecessor} leader: {self.leader}"
