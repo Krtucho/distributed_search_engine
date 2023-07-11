@@ -276,14 +276,33 @@ def search_by_text(text: str): #ROXANA
     
     # Return Response
     # Retornamos el ranking general de todos los rankings combinados
-    results_name_str = decorate_data(results_name)
-    results_ranking_str = decorate_data(results_ranking)
+    
+    print("@@@@@@@ results_name ", results_name)
 
-    result = results_name_str + results_ranking_str
+    print("@@@@@@@ results_ranking ", results_ranking)
+
+    for i in results_ranking:
+        if i not in results_name:
+            results_name.append(i)
+
+    results_name_str = decorate_data(results_name)
+    # results_ranking_str = decorate_data(results_ranking)
+
+    print("@@@@@@@ results_name_str ", results_name_str)
+
+    # print("@@@@@@@ results_ranking_str ", results_ranking_str)
+
+    # result = results_name_str + results_ranking_str
     
     # return results_name_str, results_ranking_str
 
-    return result
+    # return result
+
+    # for i in results_ranking_str:
+    #     if i not in results_name_str:
+    #         results_name_str.add(i)
+
+    return results_name_str
 
 def decorate_data(results): #ROXANA
     print("ENTRO A DECORATE DATA")
@@ -365,10 +384,13 @@ def tf_idf(textt: str):
     print("-------------")
 
     for id, rank in ranking: #new_rank no esta definido. PONGO MOMENTANEAMENTE ranking
+        print(" entro for del tf_idf ++++++++++++++++")
         db_query = f"SELECT ID, Title FROM File WHERE File.ID = '{str(id)}'"
         for i in database.execute_read_query(db_query):
             print("***** ", i)
             result.append(i)
+            print()
+            print(result)
     
     print("---------------------")
     print("result", result)
@@ -602,24 +624,41 @@ def show_file(text: str):
     print(f"response_me unido con response_others = {response_me}")
     return response_me
 
+
 def find_in_myself(text):
     print("----------------------ENTRO A find_in_myself")
     print("Hilo en ejecución: {}".format(threading.current_thread().name))
     matched_documents = match_by_name(text)
-    print("matched documents ", matched_documents)
-    if matched_documents == []:
-        #Calcularel tf_idf #{"data": id}
-        print(f"-----------ENTRO AL TF_IDF pq matched_documents = []")
-        return [tf_idf(text),False] #El booleano: PARA SABER SI LO QUE DEVUELVE EL METODO ES QUE MATCHEO CON NOMBRE O CON EL RANKING
-    else:
-        print(f"----------DEVOLVIO BIEN matched_documents")
-        return [matched_documents, True]
+    print("!!!! find_in_myself !!! matched documents ", matched_documents)
+    matched_rank = tf_idf(text)
+    print("!!!! find_in_myself !!! matched rank", matched_rank)
+
+    for i in matched_rank:
+        if i not in matched_documents:
+            matched_documents.append(i)
+
+    # matched_documents = matched_documents + matched_rank
+
+    # if matched_documents == []:
+    #     #Calcularel tf_idf #{"data": id}
+    #     return [matched_rank,False] #El booleano: PARA SABER SI LO QUE DEVUELVE EL METODO ES QUE MATCHEO CON NOMBRE O CON EL RANKING
+    # else:
+    #     return [matched_documents, True]
+
+    print("!!!----find_in_myself---!!!! final matched documents ", matched_documents)
+
+    result = decorate_data(matched_documents)
+
+    # return [matched_documents, True]
+
+    return result
     
 # Server
 # Este es el que llama al TF-IDF
 @app.get('/api/files/search/{text}') 
 def search_file_in_db(text: str): #ROXANA
     print("----------------------ENTRO A SEARCH FILE IN DB")
+    return find_in_myself(text)
     return find_in_myself(text)
 
 
