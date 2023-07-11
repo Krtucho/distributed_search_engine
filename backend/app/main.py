@@ -187,7 +187,7 @@ def send_notification(server:str, results_name, results_ranking, notification_ty
         print("selected list ", selected_list)
 
         if notification_type: #REQUEST SEARCH
-            selected_name = selected_list[1]
+            selected_name = selected_list[1] #ARREGLAR
             selected_result = selected_list[0]
             print("selected_name ", selected_name)
             if selected_name:# El resultado que devolvio la peticion es el nombre del archivo
@@ -515,19 +515,26 @@ def init_servers(datab, name_db):
 def replication_files(next_address):
     print(f"-------ENTRO EN replication_files")
     current_id = node.nodeID
-    prev_id = node.predecessor
-    if prev_id != None:
-        if prev_id[0] > current_id:# Si mi predecesor es mayor q yo entonces q empiece desde el principio q es 0
-            rango = f'1_{current_id + 1}'
-        else:
-            rango = f'{prev_id[0] + 1}_{current_id + 1}'
-        print(f"RANGO = {rango}")
-        server_str = f'http://{next_address.ip}:{next_address.port}/api/replication/{rango}'
-        try:
-            print("-------va a hacer el request api/replication")
-            new_docs_replicated = requests.get(server_str, verify=False)
-        except:
-            print(f"DIO ERROR EN EL REQUEST.GET")
+    print(f" current_id = {current_id}")
+    prev = node.predecessor
+    prev_id = 0
+    print(f"prev = {prev}")
+    print(f"successors FT = {node.successors}")
+    if prev == None: prev_id = node.successors[0]
+    else: prev_id = prev[0]
+    print(f"prev_id = {prev_id}")
+
+    if prev_id > current_id:# Si mi predecesor es mayor q yo entonces q empiece desde el principio q es 0
+        rango = f'1_{current_id + 1}'
+    else:
+        rango = f'{prev_id + 1}_{current_id + 1}'
+    print(f"RANGO = {rango}")
+    server_str = f'http://{next_address.ip}:{next_address.port}/api/replication/{rango}'
+    try:
+        print("-------va a hacer el request api/replication")
+        new_docs_replicated = requests.get(server_str, verify=False)
+    except:
+        print(f"DIO ERROR EN EL REQUEST.GET")
     
 
 @app.get('/api/replication/{rango}') # ROXANA
@@ -616,7 +623,7 @@ def show_file(text: str):
     print("-------------ENTRO EN SHOW FILE")
     print_debug(f"Searching Text... {text}")
     #buscar en el propio server primero
-    response_me = find_in_myself(text)
+    response_me = decorate_data(find_in_myself(text))
     print(f"response_me = {response_me}")
     response_others =  search_by_text(text)#{"data": id} #DUDA ESPERAR A RESPUESTA DE CARLOS EN EL GRUPO
     print(f"response_others = {response_others}")
@@ -647,18 +654,15 @@ def find_in_myself(text):
 
     print("!!!----find_in_myself---!!!! final matched documents ", matched_documents)
 
-    result = decorate_data(matched_documents)
-
-    # return [matched_documents, True]
-
-    return result
+    #result = decorate_data(matched_documents)
+    return matched_documents #[matched_documents, True]
+    #return result
     
 # Server
 # Este es el que llama al TF-IDF
 @app.get('/api/files/search/{text}') 
 def search_file_in_db(text: str): #ROXANA
     print("----------------------ENTRO A SEARCH FILE IN DB")
-    return find_in_myself(text)
     return find_in_myself(text)
 
 
