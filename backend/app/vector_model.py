@@ -161,7 +161,7 @@ class VectorModel:
         sim = []
 
         for doc in self.query_sim:
-            if self.query_sim[doc] > 0:
+            if self.query_sim[doc] > 0.1:
                 sim.append((doc, self.query_sim[doc]))
 
         rank = sorted(sim, key=lambda x: x[1], reverse=True)
