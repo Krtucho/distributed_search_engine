@@ -1,16 +1,17 @@
 import sqlite3
 from sqlite3 import Error
-from parser_cran import get_data_from
 import re
-import os
+#import os
+#from parser_cran import get_data_from
+from pydantic import BaseModel
 
-class Text:
-    def __init__(self, id, title, author, body):
-        self.id = id
-        self.title = title
-        self.author = author
-        self.body = body
-    
+
+class Text(BaseModel):
+    id : int
+    title : str
+    author : str
+    body : str
+
     def __str__(self) -> str:
         return f"id:{self.id} title:{self.title} author:{self.author}"
 
@@ -114,7 +115,7 @@ def convert_text_to_text_class(path, files_name: list):
             author_text = author.group(1).strip()
             body_ = body.group(1)
             body_text = body_.replace('\n', ' ')
-            text = Text(id_text, title_text, author_text, body_text)
+            text = Text(id = id_text, title = title_text,author = author_text, body = body_text)
             text_list.append(text)
     return text_list
 
