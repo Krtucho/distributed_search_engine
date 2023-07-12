@@ -67,7 +67,7 @@ class Channel():
 
 		try:
 			# print("INSIDE GET_MEMBER AND TRY", "osmembers on node_id: ", self.osmembers[node_id], "Osmembers:", self.osmembers)
-			return self.osmembers[node_id]
+			return self.osmembers[str(node_id)]
 		except:
 			return None
 		
@@ -77,7 +77,7 @@ class Channel():
 		return set(self.osmembers.keys())
            
 	def remove_member(self, node_id):
-		self.osmembers.pop(node_id)
+		self.osmembers.pop(str(node_id))
 
 	def join(self, subgroup, address, port):
 		with lock:
@@ -94,7 +94,7 @@ class Channel():
 			# Coordination...
 			# self.channel.sadd('members',str(newpid))
 			# self.channel.sadd(subgroup, str(newpid))
-			self.osmembers[newpid] = Address(address, port)
+			self.osmembers[str(newpid)] = Address(address, port)
 			return str(newpid)
 		
 		# members = self.channel.smembers('members')

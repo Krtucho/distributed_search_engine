@@ -136,15 +136,30 @@ class ChordNode:
     self.chan = Channel(nBits=m, address=self.node_address, hash_type=self.hash_type)
     self.nBits   = self.chan.nBits                  # Num of bits for the ID space #-
     self.MAXPROC = self.chan.MAXPROC                # Maximum num of processes     #-
-    if not self.nodeID:
-      self.nodeID  = int(self.chan.join('node', self.node_address.ip, self.node_address.port)) # Find out who you are         #-
     
-    if not self.FT:
+    try:
+      if not self.nodeID:
+        self.nodeID  = int(self.chan.join('node', self.node_address.ip, self.node_address.port)) # Find out who you are         #-
+    except:
+      self.nodeID  = int(self.chan.join('node', self.node_address.ip, self.node_address.port)) # Find out who you are         #-
+      
+    try:
+      if not self.FT:
+        self.FT      = [None for i in range(self.nBits+1)] # FT[0] is predecessor #-
+    except:
       self.FT      = [None for i in range(self.nBits+1)] # FT[0] is predecessor #-
-    if not self.nodeSet:
+
+    try:
+      if not self.nodeSet:
+        self.nodeSet = []                           # Nodes discovered so far     #-
+    except:
       self.nodeSet = []                           # Nodes discovered so far     #-
-    if not self.nodeSetDict:
-      self.nodeSetDict = {}
+
+    try:
+      if not self.nodeSetDict:
+        self.nodeSetDict = {}
+    except:
+        self.nodeSetDict = {}
 
   # Leader
   def remove_leader_from_leaders_list(self, leader):
@@ -353,7 +368,7 @@ class ChordNode:
             leader_ip = json["leader_ip"] # Si el nodo actual al que le estamos preguntando conoce al lider, nos devolvera la ip del mismo
             leader_port = json["leader_port"] # Si el nodo actual al que le estamos preguntando conoce al lider, nos devolvera el port del mismo
             node_address = Address(node_address_ip, node_address_port)
-            self.chan.osmembers[node_id] = node_address
+            self.chan.osmembers[str(node_id)] = node_address
             self.addNode(node_id)
       # if is a leader add it to leaders list
             if leader_is_leader:
