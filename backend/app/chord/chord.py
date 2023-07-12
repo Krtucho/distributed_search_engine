@@ -127,7 +127,24 @@ class ChordNode:
     return f"NODO: Address: {self.node_address} node_id: {self.nodeID} successors: {self.successors} predecessor: {self.predecessor} leader: {self.leader}"
 
   def get_predecessor(self):
-    return self.FT[0]
+    # if self.FT[1] == None or self.FT[1] == self.nodeID:#len(self.successors) == 0:
+    #   return None
+    # Retorname el id del sucesor de self.nodeID en self.nodeSet
+    if len(self.nodeSet) == 0:
+      return int(self.nodeID)
+    if len(self.nodeSet) == 1 and self.nodeSet.__contains__(self.nodeID):
+      print_info("Node Set")
+      print_info(self.nodeSet)
+      print_info(self.nodeSet.__contains__(self.nodeID))
+      return None
+    print_info("Node set: " + str(self.nodeSet))
+    self.nodeSet.reverse()
+    for node in self.nodeSet:
+      if node < self.nodeID:
+        return node
+    # if self.nodeID == self.nodeSet[len(self.nodeSet)-1]:
+    #   return 
+    return self.nodeSet[len(self.nodeSet) - 1]
 
   # Leader
   def init_leader(self):
@@ -687,7 +704,7 @@ class ChordNode:
     #   servers:list[PubMessage] = self.chan.sendTo(self.nodeID, [i], (JOIN)) #-
     #   for server in servers:
     #     requests.post(f"http://{server.address.ip}:{server.address.port}/") # TODO: Crear endpoint para avisarle a un nodo de que este nodo se unio a la red
-    self.recomputeFingerTable() #-
+    # self.recomputeFingerTable() #-
  #-
 
 
@@ -721,8 +738,8 @@ class ChordNode:
       print(e)
       has_changed = True
 
-    if has_changed:
-      self.recomputeFingerTable()
+    # if has_changed:
+    #   self.recomputeFingerTable()
    
  #-
 # class ChordClient: #-

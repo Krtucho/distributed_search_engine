@@ -760,7 +760,7 @@ def send_message(message: Message):
         node.addNode(nodeID)
         print_debug("Inside Join Endpoint: " + str(nodeID))
         print_info(node.nodeID)
-        node.recomputeFingerTable()
+        # node.recomputeFingerTable()
     # return {"server":f"Server: {message.server}","msg": f"msg: {message.content}"}
     return nodeID
 
@@ -904,12 +904,12 @@ def chord_replication_routine():
                 # Si aun no se tiene predecesor, esperamos a que el venga a buscarnos
 
             # TODO: Agregar rutina de FixFinger para que se ejecute a cada rato
-            node.recomputeFingerTable() #-
+            # node.recomputeFingerTable() #-
             print("FT", node.FT)
             # print('FT[','%04d'%node.nodeID,']: ',['%04d' % k for k in node.FT]) #- 
 
             print_info(node)
-
+            print_info("get_predecessor method: "+str(node.get_predecessor()))
             # Si es lider entonces:
             # Check for other leaders or nodes on the network
             # Discovering
