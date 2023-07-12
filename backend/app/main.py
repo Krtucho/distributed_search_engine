@@ -68,7 +68,7 @@ stopped = False
 
 server = '127.0.0.1'
 port = 10001 # Correrlo local
-
+# brenckman,m.
 if not local:
     server = str(os.environ.get('IP')) # Correrlo con Docker
     port = int(os.environ.get('PORT')) # Correrlo con Docker
@@ -169,7 +169,7 @@ files = [
 
 # Si notification_type = True  => Se refiere a buscar archivos por su nombre o ranking
 # Si notification_type = False  => Se refiere a devolver archivos para download
-def send_notification(server:str, results_name, results_ranking, notification_type = True): #ROXANA
+def send_notification(server:str, results_, notification_type = True): #ROXANA
     with lock:
         print("ENTRO EN SEND NOTIFICATION")
         print("Hilo en ejecución: {}".format(threading.current_thread().name))
@@ -187,27 +187,27 @@ def send_notification(server:str, results_name, results_ranking, notification_ty
         print("selected list ", selected_list)
 
         if notification_type: #REQUEST SEARCH
-            selected_name = selected_list[1] #ARREGLAR
-            selected_result = selected_list[0]
-            print("selected_name ", selected_name)
-            if selected_name:# El resultado que devolvio la peticion es el nombre del archivo
-                for r_name in selected_result:
-                    print("r_name ", r_name)
-                    print("r_name[0] ", r_name[0])
-                    print("r_name[1] ", r_name[1])
-                    results_name.append(r_name) #results.extend(r)  # Add matched documents to the shared list
-                print("results in send_notification ", results_name)
-            else:# El resultado que devolvio la peticion es el ranking de los posibles archivos
-                for r_ranking in selected_result:
-                    print("r_ranking ", r_ranking)
-                    print("r_ranking[0] ", r_ranking[0])
-                    print("r_ranking[1] ", r_ranking[1])
-                    results_ranking.append(r_ranking)
+            # selected_name = selected_list[1] #ARREGLAR
+            # selected_result = selected_list[0]
+            # print("selected_name ", selected_name)
+            # if selected_name:# El resultado que devolvio la peticion es el nombre del archivo
+            for r_name in selected_list:
+                print("r_name ", r_name)
+                print("r_name[0] ", r_name[0])
+                print("r_name[1] ", r_name[1])
+                results_.append(r_name) #results.extend(r)  # Add matched documents to the shared list
+            print("results in send_notification ", results_)
+            # else:# El resultado que devolvio la peticion es el ranking de los posibles archivos
+            #     for r_ranking in selected_result:
+            #         print("r_ranking ", r_ranking)
+            #         print("r_ranking[0] ", r_ranking[0])
+            #         print("r_ranking[1] ", r_ranking[1])
+            #         results_ranking.append(r_ranking)
         else: #REQUEST DOWNLOAD
             print("SENDIND REQUEST TO DOWNLOAD A FILE")
             print("selected_list[0] ", selected_list[0])
             print("selected_list[1] ", selected_list[1])
-            results_name.append(selected_list)
+            results_.append(selected_list)
         
 
 def search_to_download(number: str): #ROXANA
@@ -221,7 +221,7 @@ def search_to_download(number: str): #ROXANA
         print(f"server = {node.node_address.ip}")
         if member[1].ip == node.node_address.ip:continue
         server = f'http://{member[1].ip}:{member[1].port}/api/download/{number}'
-        t = threading.Thread(target=send_notification, args=(server, results_files_download, [], False), name="Hilo {}".format(i))
+        t = threading.Thread(target=send_notification, args=(server, results_files_download, False), name="Hilo {}".format(i))
         threading_list.append(t)
         print("T.START")
         t.start()
@@ -245,8 +245,7 @@ def search_by_text(text: str): #ROXANA
     print("ENTRO EN SEARCH BY TEXT")
     print(text)
     threading_list = []
-    results_ranking = [] # List with the ranking and query documents results
-    results_name = []  # Shared list to store the matched document names
+    results_ = []  # Shared list to store the matched document names and List with the ranking and query documents results
     # Construir ranking a partir de cada listado de archivos recibidos gracias al tf_idf
     # Search text in every server
     # TODO: Paralelizar peticiones a todos los servidores para pedirles sus rankings. https://docs.python.org/es/3/library/multiprocessing.html
@@ -259,7 +258,7 @@ def search_by_text(text: str): #ROXANA
         # Si se esta probando local entonces la condicion del if es q no sea el mismo port
         if member[1].port == node.node_address.port:continue 
         server = f'http://{member[1].ip}:{member[1].port}/api/files/search/{text}'
-        t = threading.Thread(target=send_notification, args=(server, results_name, results_ranking), name="Hilo {}".format(i))
+        t = threading.Thread(target=send_notification, args=(server, results_), name="Hilo {}".format(i))
         threading_list.append(t)
         print("T.START")
         t.start()
@@ -268,8 +267,8 @@ def search_by_text(text: str): #ROXANA
         print("T.JOIN")
         t.join()
     
-    print("search_by_text results_name ",results_name)
-    print("search_by_text results_ranking ",results_ranking)
+    print("search_by_text results_name ",results_)
+    #print("search_by_text results_ranking ",results_ranking)
     # Make Ranking 
     # Luego de esperar cierta cantidad de segundos por los rankings pasamos a hacer un ranking general de todo lo q nos llego
     # TODO: Si alguna pc se demora mucho en devolver el ranking, pasamos a preguntarle a algun intregrante de su cluster que es lo que sucede
@@ -277,15 +276,23 @@ def search_by_text(text: str): #ROXANA
     # Return Response
     # Retornamos el ranking general de todos los rankings combinados
     
-    print("@@@@@@@ results_name ", results_name)
+    print("@@@@@@@ results_ name AND ranking ", results_)
 
-    print("@@@@@@@ results_ranking ", results_ranking)
+    #print("@@@@@@@ results_ranking ", results_ranking)
 
-    for i in results_ranking:
-        if i not in results_name:
-            results_name.append(i)
+    unique_result = []
+    for i in results_:
+        if i not in unique_result:
+            print(f"-------for i in results_: i = {i} ")
+            unique_result.append(i)
 
-    results_name_str = decorate_data(results_name)
+
+    # for i in results_ranking:
+    #     if i not in results_name:
+    #         results_name.append(i)
+
+    #results_name_str = decorate_data(results_name)
+    results_name_str = decorate_data(unique_result)
     # results_ranking_str = decorate_data(results_ranking)
 
     print("@@@@@@@ results_name_str ", results_name_str)
@@ -627,10 +634,23 @@ def show_file(text: str):
     print(f"response_me = {response_me}")
     response_others =  search_by_text(text)#{"data": id} #DUDA ESPERAR A RESPUESTA DE CARLOS EN EL GRUPO
     print(f"response_others = {response_others}")
-    response_me.extend(response_others)
-    print(f"response_me unido con response_others = {response_me}")
-    return response_me
+    response = unique(response_me, response_others)
+    #response_me.extend(response_others)
+    print(f"response_me unido con response_others = {response}")
+    return response
 
+def unique(response_me, response_others):
+    print("--------------ENTRO EN UNIQUE")
+    result = copy.copy(response_me)
+
+    for elem in response_others:
+        print(f"elem = {elem}")
+        print(f"elem not in result = {elem not in result}")
+        if elem not in result:
+            result.append(elem)
+
+    print(f" result = {result}")
+    return result
 
 def find_in_myself(text):
     print("----------------------ENTRO A find_in_myself")
