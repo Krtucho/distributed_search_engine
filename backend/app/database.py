@@ -46,7 +46,6 @@ class DataB:
                 docs.append(document)
         return docs
 
-
     def close_connection(self):
         self.cursor.close()
         self.connection.close()

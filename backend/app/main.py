@@ -1,9 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Body
 from pydantic import BaseModel
 from typing import Optional, List
 from math import floor
 import copy
-
+import json
+import re
 import requests # Para realizar peticiones a otros servers y descargar archivos
 
 from file_handler import *
@@ -11,7 +12,7 @@ from file_handler import *
 
 
 from fastapi.middleware.cors import CORSMiddleware
-from database import DataB, convert_text_to_text_class
+from database import DataB, convert_text_to_text_class, Text
 import threading, time, os
 
 # Logs
@@ -67,7 +68,7 @@ if not local:
 stopped = False
 
 server = '127.0.0.1'
-port = 10002 # Correrlo local
+port = 10000 # Correrlo local
 # brenckman,m.
 if not local:
     server = str(os.environ.get('IP')) # Correrlo con Docker
@@ -437,13 +438,13 @@ def assign_documents(start, end, datab, name_db): #ROXANA
     
     node.update_server_files(docs_to_add)
     # node.run() #CARLOS
-    print("Node Run")
-    # t1 = threading.Thread(target=node.run)
-    t2 = threading.Thread(target=chord_replication_routine)
+    # print("Node Run")
+    # # t1 = threading.Thread(target=node.run)
+    # t2 = threading.Thread(target=chord_replication_routine)
 
-    # t1.start()
-    t2.start()
-    print("SALIO DEL assign_documents")
+    # # t1.start()
+    # t2.start()
+    # print("SALIO DEL assign_documents")
 
 #En la lista de servers_list inicialmente esta vacia y a medida que se conectan en la red los nuevos servers
 # es q se agregan a la lista y se le asignan nuevos documentos.Para esto se tiene en cuenta el ID de los
@@ -513,6 +514,12 @@ def init_servers(datab, name_db):
         print("servers_IP_list ", servers_IP_list)
         print("ports_list ", ports_list)
 
+
+    #REPLICAR LOS DOCS DEL PREV 
+    print("Node Run")
+    t2 = threading.Thread(target=chord_replication_routine)
+    t2.start()
+
     # coord
     t3 = threading.Thread(target=check_alive)
     t3.start()
@@ -531,18 +538,90 @@ def replication_files(next_address):
     else: prev_id = prev[0]
     print(f"prev_id = {prev_id}")
 
-    if prev_id > current_id:# Si mi predecesor es mayor q yo entonces q empiece desde el principio q es 0
-        rango = f'1_{current_id + 1}'
-    else:
-        rango = f'{prev_id + 1}_{current_id + 1}'
-    print(f"RANGO = {rango}")
-    server_str = f'http://{next_address.ip}:{next_address.port}/api/replication/{rango}'
-    try:
-        print("-------va a hacer el request api/replication")
-        new_docs_replicated = requests.get(server_str, verify=False)
-    except:
-        print(f"DIO ERROR EN EL REQUEST.GET")
+    # TOMA LOS DOCS DE SU PREVIEW (REPLICACION)
+    docs_before_reply = get_actual_data()
+    print(f"docs_before_reply = {docs_before_reply} ")
+    text_list_before = convert_text_to_text_class(PATH_TXTS,docs_before_reply)
+
+    prev_address = get_prev_adr(prev_id)
+    prev_server_str = f'http://{prev_address.ip}:{prev_address.port}/api/get_actual_data'
+    # obtener los doc del node preview
+    actual_docs_prev = requests.get(prev_server_str, verify=False)
+    print(f"valores actuales del preview del nodo actual = {actual_docs_prev}")
+    text_list = convert_text_to_text_class(PATH_TXTS,actual_docs_prev)
+    #insertarlos en la BD del node actual
+    for file in text_list:
+        database.insert_file(file)
+    docs_after_reply = get_actual_data()
+    print(f"actual data despues de replicar el prev en el actual = {docs_after_reply}")
+    node.update_server_files(docs_after_reply)
     
+    # BORRA DEL SUCESOR LOS DOCS DEL Q ERA SU PREVIEW ANTES DE Q EL NUEVO ENTRARA
+    url = 'https://{next_address.ip}:{next_address.port}/api/delete_prev_doc'# URL del endpoint que recibe los elementos a eliminar
+    data = {'elem': actual_docs_prev}# Crea un diccionario con la lista de elementos
+    json_data = json.dumps(data)# Codifica el diccionario en JSON
+    headers = {'Content-type': 'application/json'}# Establece los encabezados de la solicitud 
+    response = requests.delete(url, data=json_data, headers=headers)# Realiza la solicitud DELETE con los datos codificados en JSON en el cuerpo de la solicitud
+    if response.status_code == 200:# Verifica el código de respuesta
+        print('Elementos eliminados exitosamente')
+    else:
+        print('Error al eliminar elementos')
+
+    # COPIA SUS DOCS EN SU SUCESOR
+    url = 'https://{next_address.ip}:{next_address.port}/api/replication_docs'
+    data = {'elem': text_list_before} 
+    json_data = json.dumps(data)
+    headers = {'Content-type': 'application/json'}
+    try:
+        response = requests.get(url, data=json_data, headers=headers)
+        if response.status_code == 200:
+            print('Elementos replicados exitosamente')
+        else:
+            print('Error al replicar elementos')
+    except:
+       print(f"DIO ERROR EN EL REQUEST.GET")
+
+    #if prev_id > current_id:# Si mi predecesor es mayor q yo entonces q empiece desde el principio q es 0
+    #    rango = f'1_{current_id + 1}'
+    #else:
+    #    rango = f'{prev_id + 1}_{current_id + 1}'
+    #print(f"RANGO = {rango}")
+    #server_str = f'http://{next_address.ip}:{next_address.port}/api/replication/{rango}'
+    #try:
+    #    print("-------va a hacer el request api/replication")
+    #    new_docs_replicated = requests.get(server_str, verify=False)
+    #except:
+    #    print(f"DIO ERROR EN EL REQUEST.GET")
+
+def get_prev_adr(prev_id):
+    result = Address('0','0')
+    for n in node.chan.osmembers:
+        print(f"node in osmembers is {n}")
+
+    return result
+
+@app.get('/api/replication_docs')
+def replication_docs(docs: List[Text] = Body(...)):
+    print(f"--------------ENTRO EN api/replication_docs")
+    for data in docs:
+        database.insert_file(data)
+    actual_docs = get_actual_data()
+    print(f"actual_docs = {actual_docs}")
+    node.update_server_files(actual_docs)
+
+@app.delete('/api/delete_prev_doc')
+def delete_prev_doc(docs: List[str] = Body(...)):
+    print(f"--------------ENTRO EN api/delete_prev_doc")
+    for data in docs:
+        result = re.search(r'^document_(\d+)\.txt$',data)
+        i = int(result.group(1))
+        database.remove_file(i)
+    
+    actual_docs = get_actual_data()
+    print(f"actual_docs = {actual_docs}")
+    node.update_server_files(actual_docs)
+    
+      
 
 @app.get('/api/replication/{rango}') # ROXANA
 def api_replication(rango:str):
@@ -575,6 +654,23 @@ def api_replication(rango:str):
     print(check_files)
     print(f"documentos actuales en API REPLICATION = {docs_to_add}, len = {len(docs_to_add)}")
     node.update_server_files(docs_to_add)
+
+@app.get('/api/get_actual_data') # ROXANA
+def api_get_actual_data():
+    return get_actual_data()
+
+def get_actual_data():
+    print(f"-------------ENTRO EN get_actual_data")
+    check_files = f"SELECT ID FROM File"
+    result = database.execute_read_query(check_files)
+    docs_to_add = []
+    for i in result:
+        doc = f"document_{i[0]}.txt"
+        docs_to_add.append(doc)
+    
+    print(f"actuals docs = {docs_to_add}")
+    return docs_to_add
+
 
 class File(BaseModel):
     file_name: str

@@ -84,7 +84,7 @@ class ChordNode:
       # print_debug("Listing Dir" + str(os.listdir(self.file_path)))
       self.data[self.nodeID] = os.listdir(self.file_path)[:10] # Se listan todos los archivos que contiene este servidor. 
       # Se toman solo los primeros 10 para pruebas. Se supone q los archivos que le tocan cambien constantemente. para ello
-      # Sera necesario actualizar este diccionario con los archivos que le corresponde a cada rato
+      # Sera necesario actalizar este diccionario con los archivos que le corresponde a cada rato
       # Se adopta la creacion del metodo update_server_files() para este proposito
     except Exception as e:
       print_error(str(e))
