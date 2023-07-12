@@ -469,6 +469,7 @@ class ChordNode:
     if not self.is_leader:
       self.chan.osmembers = self.ask_members_to_leader()
       print("After update", self.chan.osmembers)
+      self.clean_nodeSet()
       for node in self.chan.osmembers.keys():
         self.addNode(node)
     # next_id, next_address = self.localSuccNode(self.nodeID)
@@ -616,7 +617,10 @@ class ChordNode:
   def addNode(self, nodeID):                                                  #-
     self.nodeSet.append(int(nodeID))                                          #-
     self.nodeSet = list(set(self.nodeSet))                                    #-
-    self.nodeSet.sort()                                                       #-
+    self.nodeSet.sort()    
+    
+  def clean_nodeSet(self):
+    self.nodeSet = []                                                   #-
 #-
   def delNode(self, nodeID):                                                  #-
     print("Assert_node_id: ", nodeID)

@@ -67,7 +67,7 @@ if not local:
 stopped = False
 
 server = '127.0.0.1'
-port = 10001 # Correrlo local
+port = 10002 # Correrlo local
 # brenckman,m.
 if not local:
     server = str(os.environ.get('IP')) # Correrlo con Docker
@@ -920,7 +920,7 @@ def chord_replication_routine():
             # asi como los que se hayan unido nuevos. Se utiliza para estar atentos a cuando:
             # se unan o desconecten redes.
             if discover_timeout <= 0:
-                discover_timeout = 21
+                discover_timeout = 3
 
             discover_timeout -= 1
             print_log(f"Discover Timeout: {discover_timeout}")
@@ -935,7 +935,7 @@ def check_alive():
     stopped = False
     try:
         while not stopped:
-            if node.is_leader and datetime.datetime.now().time().minute/5 == 0:
+            if node.is_leader and datetime.datetime.now().time().second/30 == 0:
                 # print(node.clock)
                 print("-------------------------------Check alive-----------------------------")
                 node.check_live_nodes()
