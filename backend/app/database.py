@@ -98,7 +98,7 @@ class DataB:
 
 #Este metodo se llama inicialmente al levantar los servidores y asignar a cada uno su BD.
 # Aqui se toman los archivos .txt y se devuelven como objetos de la clase Text
-def convert_text_to_text_class(path, files_name: list):
+def convert_str_to_text_class(path, files_name: list):
     text_list = []
     
     for file in files_name:
@@ -126,7 +126,7 @@ def convert_text_to_text_class(path, files_name: list):
     #path_txts =  os.path.join(current_dir, "txts")
     #
     #files_name = ['document_1.txt', 'document_2.txt', 'document_3.txt']
-    #text_list = convert_text_to_text_class(path_txts, files_name)
+    #text_list = convert_str_to_text_class(path_txts, files_name)
     #datab = DataB()
     #datab.create_connection(path)
     #for text in text_list:

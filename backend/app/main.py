@@ -12,7 +12,7 @@ from file_handler import *
 
 
 from fastapi.middleware.cors import CORSMiddleware
-from database import DataB, convert_text_to_text_class, Text
+from database import DataB, convert_str_to_text_class, Text
 import threading, time, os
 
 # Logs
@@ -69,7 +69,7 @@ stopped = False
 
 server = '127.0.0.1'
 port = 10001 # Correrlo local
-# brenckman,m.
+# brenckman,m.   ting-yili
 if not local:
     server = str(os.environ.get('IP')) # Correrlo con Docker
     port = int(os.environ.get('PORT')) # Correrlo con Docker
@@ -423,7 +423,7 @@ def assign_documents(start, end, datab, name_db): #ROXANA
         docs_to_add.append(f"document_{i}.txt")
 
     print(f"docs_to_add en assign_documents = {docs_to_add},  len = {len(docs_to_add)}")
-    text_list = convert_text_to_text_class(PATH_TXTS,docs_to_add)
+    text_list = convert_str_to_text_class(PATH_TXTS,docs_to_add)
     #A cada servidor le toca un archivo.db que se asigna en dependencia de su puerto
     print("DATABASE_DIR ", DATABASE_DIR + "/"+ name_db)
     datab.create_connection(DATABASE_DIR + "/"+ name_db) #MODIFICAR CAMBIAR ITERACION
@@ -537,7 +537,7 @@ def replication_files(next_address):
     # TOMA LOS DOCS DE SU PREVIEW (REPLICACION)
     docs_before_reply = get_actual_data()
     print(f"docs_before_reply = {docs_before_reply}, len = {len(docs_before_reply)} ")
-    text_list_before = convert_text_to_text_class(PATH_TXTS,docs_before_reply)
+    
 
     prev_address = get_prev_adr(prev)
     try:
@@ -550,7 +550,7 @@ def replication_files(next_address):
     response_actual_docs_prev = requests.get(prev_server_str, verify=False)
     actual_docs_prev = response_actual_docs_prev.json()
     print(f"valores actuales del preview del nodo actual = {actual_docs_prev}, len = {len(actual_docs_prev)}")
-    text_list = convert_text_to_text_class(PATH_TXTS,actual_docs_prev)
+    text_list = convert_str_to_text_class(PATH_TXTS,actual_docs_prev)
     #insertarlos en la BD del node actual
     for file in text_list:
         database.insert_file(file)
@@ -562,27 +562,27 @@ def replication_files(next_address):
     # BORRA DEL SUCESOR LOS DOCS DEL Q ERA SU PREVIEW ANTES DE Q EL NUEVO ENTRARA
     print(f"next_address = {next_address}")
     try:
-        url = f'https://{next_address.ip}:{next_address.port}/api/delete_prev_doc'
+        url = f'http://{next_address.ip}:{next_address.port}/api/delete_prev_doc'
     except:
-        url = f'https://{next_address["ip"]}:{next_address["port"]}/api/delete_prev_doc'
+        url = f'http://{next_address["ip"]}:{next_address["port"]}/api/delete_prev_doc'
 
     print(f"url = {url}")
-    data = {'elem': actual_docs_prev}# Crea un diccionario con la lista de elementos
-    json_data = json.dumps(data)# Codifica el diccionario en JSON
-    headers = {'Content-type': 'application/json'}# Establece los encabezados de la solicitud 
-    response = requests.delete(url, data=json_data, headers=headers)# Realiza la solicitud DELETE con los datos codificados en JSON en el cuerpo de la solicitud
-    if response.status_code == 200:# Verifica el código de respuesta
+    data = {'elem': actual_docs_prev}
+    json_data = json.dumps(data)
+    headers = {'Content-type': 'application/json'}
+    response = requests.delete(url, data=json_data, headers=headers, timeout = 10)
+    if response.status_code == 200:
         print('Elementos eliminados exitosamente')
     else:
         print('Error al eliminar elementos')
 
     # COPIA SUS DOCS EN SU SUCESOR
     try:
-        url = f'https://{next_address.ip}:{next_address.port}/api/replication_docs'
+        url = f'http://{next_address.ip}:{next_address.port}/api/replication_docs'
     except:
-        url = f'https://{next_address["ip"]}:{next_address["port"]}/api/replication_docs'
+        url = f'http://{next_address["ip"]}:{next_address["port"]}/api/replication_docs'
 
-    data = {'elem': text_list_before} 
+    data = {'elem': docs_before_reply} 
     json_data = json.dumps(data)
     headers = {'Content-type': 'application/json'}
     try:
@@ -622,9 +622,10 @@ def get_prev_adr(prev_id):
     return result
 
 @app.get('/api/replication_docs')
-def replication_docs(docs: List[Text] = Body(...)):
+def replication_docs(docs_before_reply: List[str] = Body(...)):
     print(f"--------------ENTRO EN api/replication_docs")
-    for data in docs:
+    docs_text = convert_str_to_text_class(PATH_TXTS,docs_before_reply)
+    for data in docs_text:
         database.insert_file(data)
     actual_docs = get_actual_data()
     print(f"actual_docs = {actual_docs}")
@@ -660,7 +661,7 @@ def api_replication(rango:str):
         new_docs_replicated.append(f"document_{i}.txt")
 
     print(f"new_docs_replicated = {new_docs_replicated}, len = {len(new_docs_replicated)}")
-    text_list = convert_text_to_text_class(PATH_TXTS,new_docs_replicated)
+    text_list = convert_str_to_text_class(PATH_TXTS,new_docs_replicated)
 
     for file in text_list:
         database.insert_file(file)
