@@ -1,3 +1,4 @@
 
 *.pyc
 backend/app/databases/db_2.db
+*.db
