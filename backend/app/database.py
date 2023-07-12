@@ -21,7 +21,7 @@ class DataB:
         self.cursor = None
         self.datab = ""
         
-    def insert_file(self, text_file: Text):     
+    def insert_file(self, text_file: Text):    
         create_users = """INSERT INTO
         File(ID,Title, Author, Body)
         VALUES

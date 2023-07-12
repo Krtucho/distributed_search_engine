@@ -68,7 +68,7 @@ if not local:
 stopped = False
 
 server = '127.0.0.1'
-port = 10000 # Correrlo local
+port = 10001 # Correrlo local
 # brenckman,m.
 if not local:
     server = str(os.environ.get('IP')) # Correrlo con Docker
@@ -530,34 +530,43 @@ def replication_files(next_address):
     print(f"-------ENTRO EN replication_files")
     current_id = node.nodeID
     print(f" current_id = {current_id}")
-    prev = node.predecessor
+    prev = node.get_predecessor()
     prev_id = 0
-    print(f"prev = {prev}")
-    print(f"successors FT = {node.successors}")
-    if prev == None: prev_id = node.successors[0]
-    else: prev_id = prev[0]
-    print(f"prev_id = {prev_id}")
+    print(f"!!!!!!!!!!!!!!!!!!!prev = {prev}")
 
     # TOMA LOS DOCS DE SU PREVIEW (REPLICACION)
     docs_before_reply = get_actual_data()
-    print(f"docs_before_reply = {docs_before_reply} ")
+    print(f"docs_before_reply = {docs_before_reply}, len = {len(docs_before_reply)} ")
     text_list_before = convert_text_to_text_class(PATH_TXTS,docs_before_reply)
 
-    prev_address = get_prev_adr(prev_id)
-    prev_server_str = f'http://{prev_address.ip}:{prev_address.port}/api/get_actual_data'
+    prev_address = get_prev_adr(prev)
+    try:
+        prev_server_str = f'http://{prev_address["ip"]}:{prev_address["port"]}/api/get_actual_data'
+    except:
+        prev_server_str = f'http://{prev_address.ip}:{prev_address.port}/api/get_actual_data'
+
+    print(f"prev_server_str = {prev_server_str}")
     # obtener los doc del node preview
-    actual_docs_prev = requests.get(prev_server_str, verify=False)
-    print(f"valores actuales del preview del nodo actual = {actual_docs_prev}")
+    response_actual_docs_prev = requests.get(prev_server_str, verify=False)
+    actual_docs_prev = response_actual_docs_prev.json()
+    print(f"valores actuales del preview del nodo actual = {actual_docs_prev}, len = {len(actual_docs_prev)}")
     text_list = convert_text_to_text_class(PATH_TXTS,actual_docs_prev)
     #insertarlos en la BD del node actual
     for file in text_list:
         database.insert_file(file)
     docs_after_reply = get_actual_data()
-    print(f"actual data despues de replicar el prev en el actual = {docs_after_reply}")
+    print(f"docs_after_reply = {docs_after_reply}")
+    print(f"actual data despues de replicar el prev en el actual = {docs_after_reply}, len = {len(docs_after_reply)}")
     node.update_server_files(docs_after_reply)
     
     # BORRA DEL SUCESOR LOS DOCS DEL Q ERA SU PREVIEW ANTES DE Q EL NUEVO ENTRARA
-    url = 'https://{next_address.ip}:{next_address.port}/api/delete_prev_doc'# URL del endpoint que recibe los elementos a eliminar
+    print(f"next_address = {next_address}")
+    try:
+        url = f'https://{next_address.ip}:{next_address.port}/api/delete_prev_doc'
+    except:
+        url = f'https://{next_address["ip"]}:{next_address["port"]}/api/delete_prev_doc'
+
+    print(f"url = {url}")
     data = {'elem': actual_docs_prev}# Crea un diccionario con la lista de elementos
     json_data = json.dumps(data)# Codifica el diccionario en JSON
     headers = {'Content-type': 'application/json'}# Establece los encabezados de la solicitud 
@@ -568,7 +577,11 @@ def replication_files(next_address):
         print('Error al eliminar elementos')
 
     # COPIA SUS DOCS EN SU SUCESOR
-    url = 'https://{next_address.ip}:{next_address.port}/api/replication_docs'
+    try:
+        url = f'https://{next_address.ip}:{next_address.port}/api/replication_docs'
+    except:
+        url = f'https://{next_address["ip"]}:{next_address["port"]}/api/replication_docs'
+
     data = {'elem': text_list_before} 
     json_data = json.dumps(data)
     headers = {'Content-type': 'application/json'}
@@ -594,10 +607,18 @@ def replication_files(next_address):
     #    print(f"DIO ERROR EN EL REQUEST.GET")
 
 def get_prev_adr(prev_id):
-    result = Address('0','0')
-    for n in node.chan.osmembers:
+    print("-----------ENTRO A get_prev_adr")
+    print(f"prev_id = {prev_id}")
+    miembros = node.get_members()
+    print(f"miembros = {miembros}")
+    for n in node.chan.osmembers.items():
         print(f"node in osmembers is {n}")
-
+        print(f"n[0] == str(prev_id)  = {n[0] == str(prev_id)}")
+        if n[0] == str(prev_id):
+            result = n[1]
+            print(f"result = {result}")
+            return result
+    print(f"result = {result}")
     return result
 
 @app.get('/api/replication_docs')
@@ -668,7 +689,7 @@ def get_actual_data():
         doc = f"document_{i[0]}.txt"
         docs_to_add.append(doc)
     
-    print(f"actuals docs = {docs_to_add}")
+    print(f"actuals docs = {docs_to_add}, len = {len(docs_to_add)}")
     return docs_to_add
 
 
