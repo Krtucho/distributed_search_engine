@@ -88,6 +88,7 @@ class ChordNode:
       # Sera necesario actalizar este diccionario con los archivos que le corresponde a cada rato
       # Se adopta la creacion del metodo update_server_files() para este proposito
       self.replay[self.nodeID] = os.listdir(self.file_path)[:10]
+      
     except Exception as e:
       print_error(str(e))
       print_error("Error Listing Dir")
@@ -418,6 +419,12 @@ class ChordNode:
       return False
   
   def update_server_files(self, files:list, replay_files:list): #ROXANA, DE PRUEBA
+    print()
+    print(f"---------ENTRO AL update_server_files")
+    print(f"files = {files}")
+    print(f"self.nodeID = {self.nodeID}")
+    print(f"self.data = {self.data}")
+  
     self.data[self.nodeID] = files
     self.replay[self.nodeID] = replay_files #ROXANA, DE PRUEBA
 
