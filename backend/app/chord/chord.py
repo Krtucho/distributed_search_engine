@@ -68,7 +68,7 @@ class ChordNode:
 
 
     # Replication
-    self.successors = self.FT
+    self.succesors = self.FT
     self.predecessor = None
 
     self.pred_data = {}
@@ -77,7 +77,8 @@ class ChordNode:
     self.pred_data_copied = False
 
     self.data = {}
-    self.successor_active = False
+    self.replay = {} #ROXANA, DE PRUEBA
+    self.succesor_active = False
 
     self.file_path = file_path
     try:
@@ -86,6 +87,7 @@ class ChordNode:
       # Se toman solo los primeros 10 para pruebas. Se supone q los archivos que le tocan cambien constantemente. para ello
       # Sera necesario actalizar este diccionario con los archivos que le corresponde a cada rato
       # Se adopta la creacion del metodo update_server_files() para este proposito
+      self.replay[self.nodeID] = os.listdir(self.file_path)[:10]
     except Exception as e:
       print_error(str(e))
       print_error("Error Listing Dir")
@@ -124,10 +126,10 @@ class ChordNode:
     #   self.make_replication(succ, member)
 
   def __repr__(self):
-    return f"NODO: Address: {self.node_address} node_id: {self.nodeID} successors: {self.successors} predecessor: {self.predecessor} leader: {self.leader}"
+    return f"NODO: Address: {self.node_address} node_id: {self.nodeID} succesors: {self.succesors} predecessor: {self.predecessor} leader: {self.leader}"
 
   def get_predecessor(self):
-    # if self.FT[1] == None or self.FT[1] == self.nodeID:#len(self.successors) == 0:
+    # if self.FT[1] == None or self.FT[1] == self.nodeID:#len(self.succesors) == 0:
     #   return None
     # Retorname el id del sucesor de self.nodeID en self.nodeSet
     if len(self.nodeSet) == 0:
@@ -415,8 +417,9 @@ class ChordNode:
       self.update_leaders_list()
       return False
   
-  def update_server_files(self, files:list):
+  def update_server_files(self, files:list, replay_files:list): #ROXANA, DE PRUEBA
     self.data[self.nodeID] = files
+    self.replay[self.nodeID] = replay_files #ROXANA, DE PRUEBA
 
   def get_files(self):
     # print(self.data[self.nodeID])
@@ -475,7 +478,7 @@ class ChordNode:
               files.append(file)
             self.set_confirmation(next_id, next_address, files)
           else:
-            # Find new successor
+            # Find new succesor
             self.update_succesors()
             # Upload all content
             files = []
@@ -494,7 +497,7 @@ class ChordNode:
         # files = self.upload_content(next_id, next_address, content, predecessor_content=True)
 
   def remove_succesor(self, node_id):
-    self.successors.pop(0)
+    self.succesors.pop(0)
 
   def update_succesors(self):
     print("Before Update", self.chan.osmembers)
@@ -508,7 +511,7 @@ class ChordNode:
     # print("Next Node", " Next ID: ", next_id, " Next_address: ", next_address)
 
   def get_succesor(self):
-    # if self.FT[1] == None or self.FT[1] == self.nodeID:#len(self.successors) == 0:
+    # if self.FT[1] == None or self.FT[1] == self.nodeID:#len(self.succesors) == 0:
     #   return None
     # Retorname el id del sucesor de self.nodeID en self.nodeSet
     if len(self.nodeSet) == 0:
@@ -668,7 +671,7 @@ class ChordNode:
     upbi = (lwbi + 1) % len(self.nodeSet)                # index next neighbor
     for k in range(len(self.nodeSet)):                   # go through all segments
       if self.inbetween(succ, self.nodeSet[lwbi]+1, self.nodeSet[upbi]+1):
-        return self.nodeSet[upbi]                        # found successor
+        return self.nodeSet[upbi]                        # found succesor
       (lwbi,upbi) = (upbi, (upbi+1) % len(self.nodeSet)) # go to next segment
     return None # Changed from return None to return self.nodeID if self.nodeID else None                                                                #-
 
@@ -688,7 +691,7 @@ class ChordNode:
     if self.inbetween(key, self.FT[0]+1, self.nodeID+1): # key in (FT[0],self]
       return self.nodeID, self.chan.get_member(self.nodeID)                                 # node is responsible
     elif self.inbetween(key, self.nodeID+1, self.FT[1]): # key in (self,FT[1]]
-      return self.FT[1], self.chan.get_member(self.FT[1])                               # successor responsible
+      return self.FT[1], self.chan.get_member(self.FT[1])                               # succesor responsible
     for i in range(1, self.nBits+1):                     # go through rest of FT
       if self.inbetween(key, self.FT[i], self.FT[(i+1) % self.nBits]):
         return self.FT[i], self.chan.get_member(self.FT[i])                                # key in [FT[i],FT[i+1]) 

@@ -423,20 +423,23 @@ def assign_documents(start, end, datab, name_db): #ROXANA
         docs_to_add.append(f"document_{i}.txt")
 
     print(f"docs_to_add en assign_documents = {docs_to_add},  len = {len(docs_to_add)}")
-    text_list = convert_str_to_text_class(PATH_TXTS,docs_to_add)
-    #A cada servidor le toca un archivo.db que se asigna en dependencia de su puerto
-    print("DATABASE_DIR ", DATABASE_DIR + "/"+ name_db)
-    datab.create_connection(DATABASE_DIR + "/"+ name_db) #MODIFICAR CAMBIAR ITERACION
-    for file in text_list:
-        datab.insert_file(file)
-    
-    ######### SRI #########
-    vec_mod.doc_terms_data(text_list) # se le pasa la lista de archivos que se le pasa a la base de datos de ese server
+    # Annade los docs a la BD y calcula el SRI
+    add_to_database(datab,name_db, docs_to_add, True) 
+
+    #text_list = convert_str_to_text_class(PATH_TXTS,docs_to_add)
+    ##A cada servidor le toca un archivo.db que se asigna en dependencia de su puerto
+    #print("DATABASE_DIR ", DATABASE_DIR + "/"+ name_db)
+    #datab.create_connection(DATABASE_DIR + "/"+ name_db) #MODIFICAR CAMBIAR ITERACION
+    #for file in text_list:
+    #    datab.insert_file(file)
+    #
+    ########## SRI #########
+    #vec_mod.doc_terms_data(text_list) # se le pasa la lista de archivos que se le pasa a la base de datos de ese server
                                       # aqui empieza a calc os tf idf
     # print(vec_mod.doc_terms)
     #######################
     
-    node.update_server_files(docs_to_add)
+    node.update_server_files(docs_to_add, [])
     # node.run() #CARLOS
     # print("Node Run")
     # # t1 = threading.Thread(target=node.run)
@@ -526,124 +529,174 @@ def init_servers(datab, name_db):
 
     print("SALIO DEL INIT")
 
+def delete_file(directory, file_name):
+    file_path = os.path.join(directory, file_name)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        print("El archivo se ha eliminado exitosamente.")
+    else:
+        print("El archivo no existe.")
+
+def add_to_database(datab, name_db, files: List[str], vec_mod_cond:bool):
+    text_list = convert_str_to_text_class(PATH_TXTS,files)
+    #A cada servidor le toca un archivo.db que se asigna en dependencia de su puerto
+    print("DATABASE_DIR ", DATABASE_DIR + "/"+ name_db)
+    delete_file(DATABASE_DIR, name_db)
+    datab.create_connection(DATABASE_DIR + "/"+ name_db) #MODIFICAR CAMBIAR ITERACION
+    for file in text_list:
+        datab.insert_file(file)
+    
+    if vec_mod_cond:
+        ######### SRI #########
+        vec_mod.doc_terms_data(text_list) # se le pasa la lista de archivos que se le pasa a la base de datos de ese server
+                                          # aqui empieza a calc os tf idf
+        # print(vec_mod.doc_terms)
+        #######################
+
 def replication_files(next_address):
     print(f"-------ENTRO EN replication_files")
     current_id = node.nodeID
     print(f" current_id = {current_id}")
-    prev = node.get_predecessor()
-    prev_id = 0
-    print(f"!!!!!!!!!!!!!!!!!!!prev = {prev}")
+    prev_adr = node.chan.get_member(node.get_predecessor())
+    print(f"!!!!!!!!!!!!!!!!!!!prev = {prev_adr}")
 
-    # TOMA LOS DOCS DE SU PREVIEW (REPLICACION)
-    docs_before_reply = get_actual_data()
-    print(f"docs_before_reply = {docs_before_reply}, len = {len(docs_before_reply)} ")
-    
-
-    prev_address = get_prev_adr(prev)
+    # 1- Actualizar el node.replay del succ del succ, ahora son los nuevos docs.
+    print("----------------------------------PASO 1")
+    # LLamar al succ y q este llame a su succ y actualice su node.replay
     try:
-        prev_server_str = f'http://{prev_address["ip"]}:{prev_address["port"]}/api/get_actual_data'
+        print("1-")
+        succ_server_str = f'http://{next_address["ip"]}:{next_address["port"]}/api/update_succ_data'
     except:
-        prev_server_str = f'http://{prev_address.ip}:{prev_address.port}/api/get_actual_data'
+        print("2-")
+        succ_server_str = f'http://{next_address.ip}:{next_address.port}/api/update_succ_data'
+
+    response_data_node_succ = requests.get(succ_server_str, verify=False)
+    if response_data_node_succ.status_code == 200:
+        print('Elementos replicados exitosamente')
+    else:
+        print('Error al replicar elementos')
+    
+    # 2- Actualizar el node.replay del succ, en vez de ser la data del node prev 
+    # ahora sera la data del current node.
+    print("----------------------------------PASO 2")
+    try:
+        print("1-")
+        succ_server_str = f'http://{next_address["ip"]}:{next_address["port"]}/api/update_replay_data'
+    except:
+        print("2-")
+        succ_server_str = f'http://{next_address.ip}:{next_address.port}api/update_replay_data'
+
+    current_data = get_separated_data()
+    doc = "".join(current_data[0])
+    succ_server_str += f'/{doc}'
+    response = requests.get(succ_server_str, verify=False)
+    if response.status_code == 200:
+        print('Elementos replicados exitosamente')
+    else:
+        print('Error al replicar elementos')
+
+    # 3- Actualizar el node.replay del current node, seran los docs de prev node
+    print("----------------------------------PASO 3")
+    try:
+        print("1-")
+        prev_server_str = f'http://{prev_adr["ip"]}:{prev_adr["port"]}/api/get_actual_data'
+    except:
+        print("2-")
+        prev_server_str = f'http://{prev_adr.ip}:{prev_adr.port}/api/get_actual_data'
 
     print(f"prev_server_str = {prev_server_str}")
     # obtener los doc del node preview
-    response_actual_docs_prev = requests.get(prev_server_str, verify=False)
-    actual_docs_prev = response_actual_docs_prev.json()
-    print(f"valores actuales del preview del nodo actual = {actual_docs_prev}, len = {len(actual_docs_prev)}")
-    text_list = convert_str_to_text_class(PATH_TXTS,actual_docs_prev)
-    #insertarlos en la BD del node actual
-    for file in text_list:
-        database.insert_file(file)
-    docs_after_reply = get_actual_data()
-    print(f"docs_after_reply = {docs_after_reply}")
-    print(f"actual data despues de replicar el prev en el actual = {docs_after_reply}, len = {len(docs_after_reply)}")
-    node.update_server_files(docs_after_reply)
-    
-    # BORRA DEL SUCESOR LOS DOCS DEL Q ERA SU PREVIEW ANTES DE Q EL NUEVO ENTRARA
-    print(f"next_address = {next_address}")
-    try:
-        url = f'http://{next_address.ip}:{next_address.port}/api/delete_prev_doc'
-    except:
-        url = f'http://{next_address["ip"]}:{next_address["port"]}/api/delete_prev_doc'
-
-    print(f"url = {url}")
-    data = {'elem': actual_docs_prev}
-    json_data = json.dumps(data)
-    headers = {'Content-type': 'application/json'}
-    response = requests.delete(url, data=json_data, headers=headers, timeout = 10)
+    response_data_prev = requests.get(prev_server_str, verify=False) 
     if response.status_code == 200:
-        print('Elementos eliminados exitosamente')
+        print('Elementos replicados exitosamente')
+        data_prev = response_data_prev.json()
+        node.replay = data_prev[0]
+        print(f" estos son = {data_prev[0]}, len = {len(data_prev[0])}")
     else:
-        print('Error al eliminar elementos')
+        print('Error al replicar elementos')
+    
+    print("!!!! TERMINO EL replication_files !!!!")
 
-    # COPIA SUS DOCS EN SU SUCESOR
+@app.get('/api/update_succ_data')
+def api_update_succ_data():
+    print("ENTRO A api_update_succ_data")
+    succ_adr = node.chan.get_member(node.get_succesor())
+    data = get_separated_data()
+    print(f"data = {data[0]}, len = {len(data[0])}")
+    print(f"replay = {data[1]}, len = {len(data[1])}")
     try:
-        url = f'http://{next_address.ip}:{next_address.port}/api/replication_docs'
+        print("1-")
+        succ_server_str = f'http://{succ_adr["ip"]}:{succ_adr["port"]}/api/update_replay_data'
     except:
-        url = f'http://{next_address["ip"]}:{next_address["port"]}/api/replication_docs'
+        print("2-")
+        succ_server_str = f'http://{succ_adr.ip}:{succ_adr.port}/api/update_replay_data'
+    
+    doc = "".join(data[1])
+    succ_server_str += f'/{doc}'
+    response = requests.get(succ_server_str, verify=False)
+    if response.status_code == 200:
+        data = response.json()
+        print('Elementos replicados exitosamente')
+    else:
+        print('Error al replicar elementos')
+    print("SALIO DEL api_update_succ_data")
 
-    data = {'elem': docs_before_reply} 
-    json_data = json.dumps(data)
-    headers = {'Content-type': 'application/json'}
-    try:
-        response = requests.get(url, data=json_data, headers=headers)
-        if response.status_code == 200:
-            print('Elementos replicados exitosamente')
-        else:
-            print('Error al replicar elementos')
-    except:
-       print(f"DIO ERROR EN EL REQUEST.GET")
+@app.get('/api/update_replay_data/{doc}')
+def api_update_replay_data(doc:str):
+    print(f"--------------ENTRO EN api/api_update_replay_data")
+    indices = get_indexes(doc)
+    new_replay = []
+    for i in indices:
+        temp = f"document_{i}.txt"
+        new_replay.append(temp)
+    node.update_server_files(node.data, new_replay)
+    print(f"NUEVOS DATOS REPLICADOS = {new_replay}, len = {len(new_replay)}")
 
-    #if prev_id > current_id:# Si mi predecesor es mayor q yo entonces q empiece desde el principio q es 0
-    #    rango = f'1_{current_id + 1}'
-    #else:
-    #    rango = f'{prev_id + 1}_{current_id + 1}'
-    #print(f"RANGO = {rango}")
-    #server_str = f'http://{next_address.ip}:{next_address.port}/api/replication/{rango}'
-    #try:
-    #    print("-------va a hacer el request api/replication")
-    #    new_docs_replicated = requests.get(server_str, verify=False)
-    #except:
-    #    print(f"DIO ERROR EN EL REQUEST.GET")
+# def get_prev_adr(prev_id):
+#     print("-----------ENTRO A get_prev_adr")
+#     print(f"prev_id = {prev_id}")
+#     miembros = node.get_members()
+#     print(f"miembros = {miembros}")
+#     for n in node.chan.osmembers.items():
+#         print(f"node in osmembers is {n}")
+#         print(f"n[0] == str(prev_id)  = {n[0] == str(prev_id)}")
+#         if n[0] == str(prev_id):
+#             result = n[1]
+#             print(f"result = {result}")
+#             return result
+#     print(f"result = {result}")
+#     return result
 
-def get_prev_adr(prev_id):
-    print("-----------ENTRO A get_prev_adr")
-    print(f"prev_id = {prev_id}")
-    miembros = node.get_members()
-    print(f"miembros = {miembros}")
-    for n in node.chan.osmembers.items():
-        print(f"node in osmembers is {n}")
-        print(f"n[0] == str(prev_id)  = {n[0] == str(prev_id)}")
-        if n[0] == str(prev_id):
-            result = n[1]
-            print(f"result = {result}")
-            return result
-    print(f"result = {result}")
-    return result
-
-@app.get('/api/replication_docs')
-def replication_docs(docs_before_reply: List[str] = Body(...)):
+@app.get('/api/replication_docs/{doc}')
+def replication_docs(doc: str):
     print(f"--------------ENTRO EN api/replication_docs")
-    docs_text = convert_str_to_text_class(PATH_TXTS,docs_before_reply)
-    for data in docs_text:
+    indices = get_indexes(doc)
+    for data in indices:
         database.insert_file(data)
-    actual_docs = get_actual_data()
+    actual_docs = get_all_data()
     print(f"actual_docs = {actual_docs}")
     node.update_server_files(actual_docs)
+    return True
 
-@app.delete('/api/delete_prev_doc')
-def delete_prev_doc(docs: List[str] = Body(...)):
+@app.delete('/api/delete_prev_doc/{doc}')
+def delete_prev_doc(doc:str):
     print(f"--------------ENTRO EN api/delete_prev_doc")
-    for data in docs:
-        result = re.search(r'^document_(\d+)\.txt$',data)
-        i = int(result.group(1))
+    indices = get_indexes(doc)
+    for i in indices:
         database.remove_file(i)
     
-    actual_docs = get_actual_data()
-    print(f"actual_docs = {actual_docs}")
+    actual_docs = get_all_data()
     node.update_server_files(actual_docs)
+    print(f"Documentos eliminados: {indices}")
+    print(f"Documentos restantes en la base de datos: {actual_docs}")
+
+    return {'deleted_docs': indices, 'remaining_docs': list(actual_docs)}
     
-      
+def get_indexes(doc:str):
+    pattern = r"document_(\d+)\.txt" 
+    matches = re.finditer(pattern, doc)
+    indices = [int(match.group(1)) for match in matches]
+    return indices
 
 @app.get('/api/replication/{rango}') # ROXANA
 def api_replication(rango:str):
@@ -679,10 +732,11 @@ def api_replication(rango:str):
 
 @app.get('/api/get_actual_data') # ROXANA
 def api_get_actual_data():
-    return get_actual_data()
+    print("----------ENTRO EN api_get_actual_data")
+    return get_separated_data()
 
-def get_actual_data():
-    print(f"-------------ENTRO EN get_actual_data")
+def get_all_data():
+    print(f"-------------ENTRO EN get_all_data")
     check_files = f"SELECT ID FROM File"
     result = database.execute_read_query(check_files)
     docs_to_add = []
@@ -693,6 +747,9 @@ def get_actual_data():
     print(f"actuals docs = {docs_to_add}, len = {len(docs_to_add)}")
     return docs_to_add
 
+def get_separated_data():
+    print("----------ENTRO EN get_separated_data")
+    return [node.data, node.replay]
 
 class File(BaseModel):
     file_name: str
