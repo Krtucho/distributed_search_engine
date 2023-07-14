@@ -438,12 +438,8 @@ def assign_documents(start, end, datab, name_db): #ROXANA
                                       # aqui empieza a calc os tf idf
     # print(vec_mod.doc_terms)
     #######################
-    new_data_dict = {}
-    new_replay_dict = {}
-    new_data_dict[node.nodeID] = docs_to_add
-    new_replay_dict[node.nodeID] = []
 
-    node.update_server_files(new_data_dict, new_replay_dict)
+    node.update_server_files(docs_to_add, [])
     # node.run() #CARLOS
     # print("Node Run")
     # # t1 = threading.Thread(target=node.run)
@@ -631,11 +627,15 @@ def replication_files1(next_address):
 def replication_files2(next_address):
     print(f"-------ENTRO EN replication_files 2")
     if len(node.get_members()) == 1: #ES el unico nodo que queda
-        new_data_combined = node.data.copy()  # Copia dict1 para evitar modificarlo directamente
-        new_data_combined.update(node.replay)
-        new_replay_dict = {}
-        new_replay_dict[node.nodeID] = []
-        node.update_server_files(new_data_combined, new_replay_dict)
+        
+        new_data_combined = list(node.data.values())[0]
+        print(f"list(node.data.values())[0] = {new_data_combined}, len = {len(new_data_combined)}")
+        replay_list = list(node.replay.values())[0]
+        print(f"replay_list = {replay_list}, len = {len(replay_list)}")
+        new_data_combined.extend(replay_list)
+        print(f"new_data_combined = {new_data_combined}, len = {len(new_data_combined)}")
+
+        node.update_server_files(new_data_combined, [])
     else:
         try:
             print("1-")
@@ -726,9 +726,8 @@ def update_replay_data(doc:str):
     print(f"node.data antes de hacer sorted = {node.data}")
     print()
     print(f"node.replay antes de hacer sorted = {node.replay}")
-    new_replay_dict = {}
-    new_replay_dict[node.nodeID] = new_replay
-    node.update_server_files(node.data, new_replay_dict)
+    data_list = list(node.data.values())[0]
+    node.update_server_files(data_list, new_replay)
     # AGREGAR A LA BD los archivos de la nueva replica!
     add_to_database(database,"",new_replay, False)
     print(f"NUEVOS DATOS REPLICADOS = {new_replay}, len = {len(new_replay)}")
@@ -1061,21 +1060,20 @@ def remove_doc_api(rango:str):
         remove_data.append(data)
         database.remove_file(i)
     
-    new_data_dict = {}
-    temp_list = []
+    new_data_list = []
+    print(f"node.data = {node.data}")
     current_data = list(node.data.values())[0]
     print(f"node.nodeID = {node.nodeID}")
 
     print(f"current_data en el remove_doc_api = {current_data}")
     for d in current_data:
         if d not in remove_data:
-            temp_list.append(d)
+            new_data_list.append(d)
         
-    new_data_dict[node.nodeID] = temp_list
-
-    print(f"new_data_dict[{node.nodeID}] = {temp_list}")
+    print(f"new_data_list = {new_data_list}")
     print(f"node.replay = {node.replay}")
-    node.update_server_files(new_data_dict, node.replay)
+    replay_list = list(node.replay.values())[0]
+    node.update_server_files(new_data_list, replay_list)
 
 # Leader
 @app.get('/chord/channel/leader')

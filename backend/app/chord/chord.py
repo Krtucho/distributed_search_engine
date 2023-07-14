@@ -424,9 +424,13 @@ class ChordNode:
     print(f"files = {files}")
     print(f"self.nodeID = {self.nodeID}")
     print(f"self.data = {self.data}")
+    print(f"self.replay = {self.replay}")
   
     self.data[self.nodeID] = files
     self.replay[self.nodeID] = replay_files #ROXANA, DE PRUEBA
+    print("DESPUES DEL UPDATE")
+    print(f"self.data = {self.data}")
+    print(f"self.replay = {self.replay}")
 
   def get_files(self):
     # print(self.data[self.nodeID])
