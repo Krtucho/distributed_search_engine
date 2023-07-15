@@ -729,7 +729,7 @@ def update_replay_data(doc:str):
     data_list = list(node.data.values())[0]
     node.update_server_files(data_list, new_replay)
     # AGREGAR A LA BD los archivos de la nueva replica!
-    add_to_database(database,"",new_replay, False)
+    add_to_database(database,"",new_replay, True)
     print(f"NUEVOS DATOS REPLICADOS = {new_replay}, len = {len(new_replay)}")
 
 # def get_prev_adr(prev_id):

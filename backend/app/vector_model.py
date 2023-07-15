@@ -161,7 +161,7 @@ class VectorModel:
         sim = []
 
         for doc in self.query_sim:
-            if self.query_sim[doc] > 0.1:
+            if self.query_sim[doc] > 0:
                 sim.append((doc, self.query_sim[doc]))
 
         rank = sorted(sim, key=lambda x: x[1], reverse=True)
@@ -200,3 +200,28 @@ class VectorModel:
         return [WordNetLemmatizer().lemmatize(token.lower()) for token in re.split(r'\W+', text) if token not in set(stopwords.words('english'))] 
         
         # return [WordNetLemmatizer().lemmatize(token.lower()) for token in re.split(r'\W+', text) if token not in set(stop_words)]
+
+
+    def delete_doc(self, id: str):
+        self.docs -= 1
+
+        # print(self.term_idf)
+        
+        for term in self.doc_terms:
+            if self.doc_terms[term].get(id):
+                del self.doc_terms[term][id]
+
+        new_dict = self.doc_terms.copy()
+
+        for term in self.doc_terms:
+            if len(self.doc_terms[term]) == 0:
+                del new_dict[term]
+
+            else:
+                self.term_idf[term] = log(
+                        self.docs / len(self.doc_terms[term]), 10)
+
+                for doc in self.doc_terms[term]:                
+                    self.doc_terms[term][doc].w = self.doc_terms[term][doc].tf * self.term_idf[term]
+
+        self.doc_terms = new_dict
