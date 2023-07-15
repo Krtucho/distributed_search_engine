@@ -68,7 +68,7 @@ if not local:
 stopped = False
 
 server = '127.0.0.1'
-port = 10001 # Correrlo local
+port = 10002 # Correrlo local
 # brenckman,m.   ting-yili
 if not local:
     server = str(os.environ.get('IP')) # Correrlo con Docker
@@ -642,7 +642,7 @@ def replication_files2(next_address):
             url = f'http://{next_address["ip"]}:{next_address["port"]}/api/update_all_data'
         except:
             print("2-")
-            url = f'http://{next_address.ip}:{next_address.port}api/update_all_data'
+            url = f'http://{next_address.ip}:{next_address.port}/api/update_all_data'
         
         print(f"url = {url}")
         separated_data = get_separated_data()
@@ -652,7 +652,7 @@ def replication_files2(next_address):
         doc = "".join(current_data)
         
         url += f'/{doc}'
-        response = requests.get(url, verify=False)
+        response = requests.get(url, verify=False) #AQUI HUBO ERROR, múltiples intentos de conexión y todos ellos fallaron. 
         if response.status_code == 200:
             print('Elementos replicados exitosamente')
         else:
