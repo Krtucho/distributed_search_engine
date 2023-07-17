@@ -171,18 +171,19 @@ files = [
 # Si notification_type = True  => Se refiere a buscar archivos por su nombre o ranking
 # Si notification_type = False  => Se refiere a devolver archivos para download
 def send_notification(server:str, results_, notification_type = True): #ROXANA
+    print("Notificatin type +++++++++++++++", notification_type)
     with lock:
         print("ENTRO EN SEND NOTIFICATION")
         print("Hilo en ejecución: {}".format(threading.current_thread().name))
         print(f"server = {node.node_address.ip}, PORT = {node.node_address.port}")
         result = requests.get(server, verify=False)
          
-        print("\R:")
-        print("result ",result)
-        print("result.content ",result.content)
-        print("result.text ",result.text)
-        print("result.text[0] ",result.text[0])
-        print("R/")
+        # print("\R:")
+        # print("result ",result)
+        # print("result.content ",result.content)
+        # print("result.text ",result.text)
+        # print("result.text[0] ",result.text[0])
+        # print("R/")
 
         selected_list = result.json()
         print("selected list ", selected_list)
@@ -193,9 +194,9 @@ def send_notification(server:str, results_, notification_type = True): #ROXANA
             # print("selected_name ", selected_name)
             # if selected_name:# El resultado que devolvio la peticion es el nombre del archivo
             for r_name in selected_list:
-                print("r_name ", r_name)
-                print("r_name[0] ", r_name[0])
-                print("r_name[1] ", r_name[1])
+                # print("r_name ", r_name)
+                # print("r_name[0] ", r_name[0])
+                # print("r_name[1] ", r_name[1])
                 results_.append(r_name) #results.extend(r)  # Add matched documents to the shared list
             print("results in send_notification ", results_)
             # else:# El resultado que devolvio la peticion es el ranking de los posibles archivos
@@ -220,7 +221,8 @@ def search_to_download(number: str): #ROXANA
         print(f"MEMBER {member}")
         print(f"ESTOY EN EL LLAMADO DE LOS HILOS: IP = {member[1].ip}")
         print(f"server = {node.node_address.ip}")
-        if member[1].ip == node.node_address.ip:continue
+        # if member[1].ip == node.node_address.ip:continue 
+        if member[1].port == node.node_address.port:continue  # para correrlo local
         server = f'http://{member[1].ip}:{member[1].port}/api/download/{number}'
         t = threading.Thread(target=send_notification, args=(server, results_files_download, False), name="Hilo {}".format(i))
         threading_list.append(t)
@@ -268,7 +270,8 @@ def search_by_text(text: str): #ROXANA
         print("T.JOIN")
         t.join()
     
-    print("search_by_text results_name ",results_)
+    # print("search_by_text results_name ",results_)
+
     #print("search_by_text results_ranking ",results_ranking)
     # Make Ranking 
     # Luego de esperar cierta cantidad de segundos por los rankings pasamos a hacer un ranking general de todo lo q nos llego
@@ -277,14 +280,14 @@ def search_by_text(text: str): #ROXANA
     # Return Response
     # Retornamos el ranking general de todos los rankings combinados
     
-    print("@@@@@@@ results_ name AND ranking ", results_)
+    # print("@@@@@@@ results_ name AND ranking ", results_)
 
     #print("@@@@@@@ results_ranking ", results_ranking)
 
     unique_result = []
     for i in results_:
         if i not in unique_result:
-            print(f"-------for i in results_: i = {i} ")
+            # print(f"-------for i in results_: i = {i} ")
             unique_result.append(i)
 
 
@@ -296,7 +299,7 @@ def search_by_text(text: str): #ROXANA
     results_name_str = decorate_data(unique_result)
     # results_ranking_str = decorate_data(results_ranking)
 
-    print("@@@@@@@ results_name_str ", results_name_str)
+    # print("@@@@@@@ results_name_str ", results_name_str)
 
     # print("@@@@@@@ results_ranking_str ", results_ranking_str)
 
@@ -313,16 +316,16 @@ def search_by_text(text: str): #ROXANA
     return results_name_str
 
 def decorate_data(results): #ROXANA
-    print("ENTRO A DECORATE DATA")
-    print("results ", results)
+    # print("ENTRO A DECORATE DATA")
+    # print("results ", results)
     result = []
     # final_string = {}
     for i, elem in enumerate(results):
         final_string = {}
-        print("*final_string ", final_string)
-        print(f"i={i}, elem= {elem}")
-        print("elem[0] ", elem[0])
-        print("elem[1] ", elem[1])
+        # print("*final_string ", final_string)
+        # print(f"i={i}, elem= {elem}")
+        # print("elem[0] ", elem[0])
+        # print("elem[1] ", elem[1])
         # final_string[f"id_{i}"] = elem[0]
         # final_string[f"name_{i}"] = elem[1]
         # # final_string[f"url__{i}"] = 'https://localhost:3000'
@@ -369,14 +372,14 @@ def match_by_name(text:str): #ROXANA
         for index, t in enumerate(result_4):
             if text in t[1]:
                 result_2.append(t)
-            print("result[0]",t[0])
-            print("result[1]",t[1])
-            print()
+            # print("result[0]",t[0])
+            # print("result[1]",t[1])
+            # print()
 
-    print("-------------RESULTADO ALL AUTHORS",result_3)
-    print("-------------RESULTADO por AUTHOR, Title",result_1)
-    print("-------------RESULTADO ALL Titles",result_4)
-    print("-------------RESULTADO TITULOS SELECCIONADOS ", result_2)
+    # print("-------------RESULTADO ALL AUTHORS",result_3)
+    # print("-------------RESULTADO por AUTHOR, Title",result_1)
+    # print("-------------RESULTADO ALL Titles",result_4)
+    # print("-------------RESULTADO TITULOS SELECCIONADOS ", result_2)
     return result_1 + result_2 
 
 
@@ -387,22 +390,22 @@ def tf_idf(textt: str):
     ranking = vec_mod.run(textt)
     result = []
     
-    print("---------------------")
-    print("ranking", ranking)
-    print("-------------")
+    # print("---------------------")
+    # print("ranking", ranking)
+    # print("-------------")
 
     for id, rank in ranking: #new_rank no esta definido. PONGO MOMENTANEAMENTE ranking
-        print(" entro for del tf_idf ++++++++++++++++")
+        # print(" entro for del tf_idf ++++++++++++++++")
         db_query = f"SELECT ID, Title FROM File WHERE File.ID = '{str(id)}'"
         for i in database.execute_read_query(db_query):
-            print("***** ", i)
+            # print("***** ", i)
             result.append(i)
-            print()
-            print(result)
+            # print()
+            # print(result)
     
-    print("---------------------")
-    print("result", result)
-    print("-------------")
+    # print("---------------------")
+    # print("result", result)
+    # print("-------------")
 
     return result
     # pass # Paula
@@ -544,6 +547,7 @@ def add_to_database(datab, name_db, files: List[str], vec_mod_cond:bool):
     if name_db != "":
         delete_db(DATABASE_DIR, name_db)
         datab.create_connection(DATABASE_DIR + "/"+ name_db) #MODIFICAR CAMBIAR ITERACION
+    
     for file in text_list:
         datab.insert_file(file)
     
@@ -638,12 +642,12 @@ def replication_files2(next_address):
         node.update_server_files(new_data_combined, [])
     else:
         try:
-            print("1-")
-            url = f'http://{next_address["ip"]}:{next_address["port"]}/api/update_all_data'
-        except:
             print("2-")
             url = f'http://{next_address.ip}:{next_address.port}/api/update_all_data'
-        
+        except:
+            print("1-")
+            url = f'http://{next_address["ip"]}:{next_address["port"]}/api/update_all_data'
+
         print(f"url = {url}")
         separated_data = get_separated_data()
         print(f"separated_data[0] = {separated_data[0]}")
@@ -652,6 +656,7 @@ def replication_files2(next_address):
         doc = "".join(current_data)
         
         url += f'/{doc}'
+        print("-------------- url de replication files 2 ---------------- ", url)
         response = requests.get(url, verify=False) #AQUI HUBO ERROR, múltiples intentos de conexión y todos ellos fallaron. 
         if response.status_code == 200:
             print('Elementos replicados exitosamente')
@@ -1069,6 +1074,11 @@ def remove_doc_api(rango:str):
     for d in current_data:
         if d not in remove_data:
             new_data_list.append(d)
+
+    # ahora vm solamente con los doc que se quedan en el server 
+    # text_list = convert_str_to_text_class(PATH_TXTS, new_data_list)
+    # vec_mod.doc_terms.clear()
+    # vec_mod.doc_terms_data(text_list) 
         
     print(f"new_data_list = {new_data_list}")
     print(f"node.replay = {node.replay}")
@@ -1112,7 +1122,7 @@ def chord_replication_routine():
             # Al hacer la peticion verifico si sigue activo y ademas si ya se replico la info
             data = {}
             r = None
-            if (not next_id == None ) and (not next_address == None):
+            if (not next_id == None) and (not next_address == None):
                 next_address = Address.extract_ip_port(next_address)
                 data = {"node_id":node.nodeID, "ip":node.node_address.ip,"port": int(node.node_address.port)}
                 try:
@@ -1200,7 +1210,7 @@ def check_alive():
         while not stopped:
             if node.is_leader and datetime.datetime.now().time().second/30 == 0:
                 # print(node.clock)
-                print("-------------------------------Check alive-----------------------------")
+                # print("-------------------------------Check alive-----------------------------")
                 node.check_live_nodes()
                 # time.sleep(10)
     except KeyboardInterrupt as e:
