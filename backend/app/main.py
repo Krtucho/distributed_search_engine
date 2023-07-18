@@ -644,9 +644,7 @@ def replication_files1(next_id, next_address):
         print_success(f"all_data = {all_data}, len = {len(all_data)}")
         print_success("!!!! TERMINO EL replication_files 1!!!!")
 
-# Se cayo el nodo siguiente a mi o detras de mi
-# Si next_node = True => se cayo el nodo siguiente a mi
-# Si next_node = False => se cayo el nodo detras de mi
+# Se cayo el nodo siguiente a mi
 def replication_files2(next_id, next_address):
     print(f"-------ENTRO EN replication_files 2")
     print_success(f"-----------------next address: {next_id}, {next_address}")
@@ -663,6 +661,25 @@ def replication_files2(next_id, next_address):
         node.update_server_files(new_data_combined, [])
     elif str(next_id) != str(current_id) or next_address != None:
         print(f"node.get_members() = {node.get_members()}")
+        print("PRIMETA PARTE")
+        # Llamo a mi sucesor y este tiene que agregar en su node.data los archivos de su node.replay
+        # Luego, llama a su sucesor pasandole su nuevo node.data para q lo actualice en su otro node.replay
+        try:
+            print("1-")
+            url = f'http://{next_address["ip"]}:{next_address["port"]}/api/update_succ_data'
+        except:
+            print("2-")
+            url = f'http://{next_address.ip}:{next_address.port}/api/update_succ_data'
+        
+        print(f"url = {url}")
+        try:
+            response_data_node_succ = requests.get(url, verify=False)
+            print('Elementos replicados exitosamente')
+        except:
+            print('Error al replicar elementos')
+        
+        print("SEGUNDA PARTE")
+        # LLAmo a mi sucesor y le paso mis docs de node.data para q los actualice en su node.replay
         try:
             print("1-")
             url = f'http://{next_address["ip"]}:{next_address["port"]}/api/update_all_data'
@@ -683,21 +700,6 @@ def replication_files2(next_id, next_address):
         try:
             response = requests.get(url, verify=False) #AQUI HUBO ERROR, múltiples intentos de conexión y todos ellos fallaron. 
             print("/////////////////////////, ", response)
-            print('Elementos replicados exitosamente')
-        except:
-            print('Error al replicar elementos')
-        
-        print("SEGUNDA PARTE")
-        try:
-            print("1-")
-            url = f'http://{next_address["ip"]}:{next_address["port"]}/api/update_succ_data'
-        except:
-            print("2-")
-            url = f'http://{next_address.ip}:{next_address.port}/api/update_succ_data'
-        
-        print(f"url = {url}")
-        try:
-            response_data_node_succ = requests.get(url, verify=False)
             print('Elementos replicados exitosamente')
         except:
             print('Error al replicar elementos')
@@ -727,15 +729,23 @@ def update_all_data (doc:str):
 def api_update_succ_data():
     print("ENTRO A api_update_succ_data")
     succ_adr = node.chan.get_member(node.get_succesor())
+    new_data = []
 
     separated_data = get_separated_data()
     print(f"separated_data[0] = {separated_data[0]}")
     current_data = list(separated_data[0].values())[0]
     print(f"current_data = {current_data}, len = {len(current_data)}")
     print()
+
     print(f"separated_data[1] = {separated_data[1]}")
     current_replay = list(separated_data[1].values())[0]
     print(f"current_replay = {current_replay}, len = {len(current_replay)}")
+
+    new_data = current_data + current_replay
+    print(f"new_data combinada = {new_data}, len = {len(new_data)}")
+    node.update_server_files(new_data, current_replay) #DATOS MIOS Y DE MI PREVIEWS Q SE CAYO
+
+    # LLamar a mi sucesor para que actualice su node.replay, pq mi node.data cambio
     try:
         print("1-")
         url = f'http://{succ_adr["ip"]}:{succ_adr["port"]}/api/update_replay_data'
@@ -744,10 +754,9 @@ def api_update_succ_data():
         url = f'http://{succ_adr.ip}:{succ_adr.port}/api/update_replay_data'
 
     print(f"utl = {url}")
-    doc = "".join(current_data)
+    doc = "".join(new_data)
     url += f'/{doc}'
     print(f"url with docs = {url}")
-    
     try:
         response = requests.get(url, verify=False)
         print('Elementos replicados exitosamente')
@@ -776,9 +785,9 @@ def update_replay_data(doc:str):
     print(f"node.data antes de hacer sorted = {node.data}")
     print()
     print(f"node.replay antes de hacer sorted = {node.replay}")
-    data_list = list(node.data.values())[0]
+    current_data = list(node.data.values())[0]
     #old_replay = list(node.replay.values())[0]
-    node.update_server_files(data_list, new_replay)
+    node.update_server_files(current_data, new_replay)
     # AGREGAR A LA BD los archivos de la nueva replica!
     add_to_database(database,"", new_replay, True)
 
