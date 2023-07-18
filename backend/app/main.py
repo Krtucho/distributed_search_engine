@@ -68,7 +68,7 @@ if not local:
 stopped = False
 
 server = '127.0.0.1'
-port = 10002 # Correrlo local
+port = 10000 # Correrlo local
 # brenckman,m.   ting-yili
 if not local:
     server = str(os.environ.get('IP')) # Correrlo con Docker
@@ -794,8 +794,11 @@ def update_replay_data(doc:str):
 
     print_info("After update_replay_data restarting pred_data_info")
     if not len(node.replay.items()) <= 0:
+        print_info("Inside if...")
         items = [(id, address) for (id,address) in node.replay.items()]
         node.restart_pred_data_info(int(items[0][0]))
+        print_info(f"node.pred_data: {node.pred_data}")
+        print_info(f"node.pred_data_copied: {node.pred_data_copied}")
 # def get_prev_adr(prev_id):
 #     print("-----------ENTRO A get_prev_adr")
 #     print(f"prev_id = {prev_id}")

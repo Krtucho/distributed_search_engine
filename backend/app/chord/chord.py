@@ -463,7 +463,7 @@ class ChordNode:
           response = requests.post(url, files={"file": file})
           
       print(response.text)
-      return file_name
+      return True
     except:
       return False
 
@@ -473,8 +473,10 @@ class ChordNode:
     try:
       r = requests.post(f"http://{next_address.ip}:{next_address.port}/chord/succ/data/done", json=data)
       print(r)
+      return True
     except Exception as e:
       print(e)
+      return False
   
   def make_replication(self, next_id, next_address, content=None):
     print_debug("Making Replication")
@@ -482,37 +484,41 @@ class ChordNode:
         # Si no se pasa ningun contenido, asumimos que se va a replicar el mismo en su sucesor
         files = []
         for file in self.get_files():
-          self.upload_content(next_id, next_address, file)
+          if not self.upload_content(next_id, next_address, file):
+            return False
           files.append(file)
         print(next_address)
-        self.set_confirmation(next_id, next_address, files)
+        return self.set_confirmation(next_id, next_address, files)
     else:
         if next_address == self.node_address:
-          return
+          return False
         
         try:
           if self.node_is_alive(self.get_succesor()):
             # Upload only predecessor content: file
             files = []
             for file in content:
-              self.upload_content(next_id, next_address, file)
+              if not self.upload_content(next_id, next_address, file):
+                return False
               files.append(file)
-            self.set_confirmation(next_id, next_address, files)
+            return self.set_confirmation(next_id, next_address, files)
           else:
             # Find new succesor
             self.update_succesors()
             # Upload all content
             files = []
             for file in content:
-              self.upload_content(next_id, next_address, file)
+              if not self.upload_content(next_id, next_address, file):
+                return False
               files.append(file)
             for file in self.get_files():
-              self.upload_content(next_id, next_address, file)
+              if not self.upload_content(next_id, next_address, file):
+                return False
               files.append(file)
             # print(next_address)
-            self.set_confirmation(next_id, next_address, files)
+            return self.set_confirmation(next_id, next_address, files)
         except:
-          pass
+          return False
 
 
         # files = self.upload_content(next_id, next_address, content, predecessor_content=True)
@@ -557,7 +563,7 @@ class ChordNode:
       return True
     print_debug(f"Inside Check Pred Data ID:  {nodeId}, {node_Address}, {self.pred_data_copied}, {self.pred_data.get(nodeId)}")
     print_debug(f"... self.data: {self.data} \n self.replay: {self.replay}")
-    return self.pred_data_copied and self.pred_data.get(nodeId)
+    return self.pred_data_copied and self.replay.get(nodeId)
   
   def confirm_pred_data_info(self, node_id, node_address, files=None):
     # if self.get_predecessor() == node_id:
