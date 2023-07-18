@@ -77,7 +77,7 @@ if not local:
 print("ROXANA SERVER = ", server)
 print("ROXANA PORT = ", port)
 
-TIMEOUT = 10
+TIMEOUT = 20
 if not local:
     try:
         TIMEOUT = int(os.environ.get('TIMEOUT')) # Correrlo con Docker
@@ -194,9 +194,9 @@ def send_notification(server:str, results_, notification_type = True): #ROXANA
             # print("selected_name ", selected_name)
             # if selected_name:# El resultado que devolvio la peticion es el nombre del archivo
             for r_name in selected_list:
-                print("r_name ", r_name)
-                print("r_name[0] ", r_name[0])
-                print("r_name[1] ", r_name[1])
+                # print("r_name ", r_name)
+                # print("r_name[0] ", r_name[0])
+                # print("r_name[1] ", r_name[1])
                 results_.append(r_name) #results.extend(r)  # Add matched documents to the shared list
             print("results in send_notification ", results_)
             # else:# El resultado que devolvio la peticion es el ranking de los posibles archivos
@@ -315,16 +315,16 @@ def search_by_text(text: str): #ROXANA
     return results_name_str
 
 def decorate_data(results): #ROXANA
-    print("ENTRO A DECORATE DATA")
-    print("results ", results)
+    # print("ENTRO A DECORATE DATA")
+    # print("results ", results)
     result = []
     # final_string = {}
     for i, elem in enumerate(results):
         final_string = {}
-        print("*final_string ", final_string)
-        print(f"i={i}, elem= {elem}")
-        print("elem[0] ", elem[0])
-        print("elem[1] ", elem[1])
+        # print("*final_string ", final_string)
+        # print(f"i={i}, elem= {elem}")
+        # print("elem[0] ", elem[0])
+        # print("elem[1] ", elem[1])
         # final_string[f"id_{i}"] = elem[0]
         # final_string[f"name_{i}"] = elem[1]
         # # final_string[f"url__{i}"] = 'https://localhost:3000'
@@ -394,7 +394,7 @@ def tf_idf(textt: str):
     # print("-------------")
 
     for id, rank in ranking: #new_rank no esta definido. PONGO MOMENTANEAMENTE ranking
-        print(" entro for del tf_idf ++++++++++++++++")
+        # print(" entro for del tf_idf ++++++++++++++++")
         db_query = f"SELECT ID, Title FROM File WHERE File.ID = '{str(id)}'"
         for i in database.execute_read_query(db_query):
             # print("***** ", i)
@@ -684,9 +684,7 @@ def replication_files2(next_address):
 
 @app.get('/api/update_all_data/{doc}')
 def update_all_data (doc:str):
-    # node.data = node.data.extend(node.replay)
-    # for item in node.replay:
-    #     node.data 
+    # node.data = node.data.extend(node.replay) # extend no existe
     print("node data *************",  node.data)
     print()
     print("node replay *************",  node.replay)
