@@ -415,7 +415,33 @@ def check_database(number):
     query = f"SELECT ID FROM File WHERE File.ID = '{number}'"
     result_ID = database.execute_read_query(query)
     return result_ID
+
+def delete_db(directory, file_name):
+    file_path = os.path.join(directory, file_name)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        print("El archivo se ha eliminado exitosamente.")
+    else:
+        print("El archivo no existe.")
+
+def add_to_database(datab, name_db, files: List[str], vec_mod_cond:bool):
+    text_list = convert_str_to_text_class(PATH_TXTS,files)
+    #A cada servidor le toca un archivo.db que se asigna en dependencia de su puerto
+    print("DATABASE_DIR ", DATABASE_DIR + "/"+ name_db)
+    if name_db != "":
+        delete_db(DATABASE_DIR, name_db)
+        datab.create_connection(DATABASE_DIR + "/"+ name_db) #MODIFICAR CAMBIAR ITERACION
     
+    for file in text_list:
+        datab.insert_file(file)
+    
+    if vec_mod_cond:
+        ######### SRI #########
+        vec_mod.doc_terms_data(text_list) # se le pasa la lista de archivos que se le pasa a la base de datos de ese server
+                                          # aqui empieza a calc os tf idf
+        # print(vec_mod.doc_terms)
+        #######################
+
 #asignar los documentos a cada server segun el orden en la lista
 def assign_documents(start, end, datab, name_db): #ROXANA
     print("ENTRO AL assign_documents")
@@ -480,9 +506,8 @@ def init_servers(datab, name_db):
         print("int(miembros[i][0]) == newserver_id = ", int(new_members[i][0]) == newserver_id)
         if int(new_members[i][0]) == newserver_id: #Solo entra 1 vez
             start = 1
-            if i > 0:
-                start = int(new_members[i - 1][0]) + 1
-                print("prev id = ", start)
+            if i > 0: start = int(new_members[i - 1][0]) + 1
+            print("prev id = ", start)
             # Annadir a la BD del nuevo server los docs que le tocan
             assign_documents(start,newserver_id + 1, datab, name_db)
             # Quitar a la BD del sucesor del nuevo server los docs que le tocan al nuevo a traves de un endpoint
@@ -531,32 +556,6 @@ def init_servers(datab, name_db):
 
     print("SALIO DEL INIT")
 
-def delete_db(directory, file_name):
-    file_path = os.path.join(directory, file_name)
-    if os.path.exists(file_path):
-        os.remove(file_path)
-        print("El archivo se ha eliminado exitosamente.")
-    else:
-        print("El archivo no existe.")
-
-def add_to_database(datab, name_db, files: List[str], vec_mod_cond:bool):
-    text_list = convert_str_to_text_class(PATH_TXTS,files)
-    #A cada servidor le toca un archivo.db que se asigna en dependencia de su puerto
-    print("DATABASE_DIR ", DATABASE_DIR + "/"+ name_db)
-    if name_db != "":
-        delete_db(DATABASE_DIR, name_db)
-        datab.create_connection(DATABASE_DIR + "/"+ name_db) #MODIFICAR CAMBIAR ITERACION
-    
-    for file in text_list:
-        datab.insert_file(file)
-    
-    if vec_mod_cond:
-        ######### SRI #########
-        vec_mod.doc_terms_data(text_list) # se le pasa la lista de archivos que se le pasa a la base de datos de ese server
-                                          # aqui empieza a calc os tf idf
-        # print(vec_mod.doc_terms)
-        #######################
-
 def replication_files1(next_address):
     print(f"-------ENTRO EN replication_files 1")
     current_id = node.nodeID
@@ -564,7 +563,8 @@ def replication_files1(next_address):
     prev_adr = node.chan.get_member(node.get_predecessor())
     print(f"!!!!!!!!!!!!!!!!!!!prev = {prev_adr}")
 
-    # 1- Actualizar el node.replay del succ del succ, ahora son los nuevos docs.
+    # 1- Actualizar el node.replay del succ del succ, ahora son los nuevos docs. 
+    # porque se cambio su node.data y se actualizo
     print("----------------------------------PASO 1")
     # LLamar al succ y q este llame a su succ y actualice su node.replay
     try:
@@ -599,6 +599,7 @@ def replication_files1(next_address):
     
     print(f"url = {url}")
     url += f'/{doc}'
+    print(f"url with docs = {url}")
     response = requests.get(url, verify=False)
     if response.status_code == 200:
         print('Elementos replicados exitosamente')
@@ -622,6 +623,8 @@ def replication_files1(next_address):
     else:
         print('Error al replicar elementos')
     
+    print("COMPROBANDO TODO")
+    all_data = get_all_data()
     print("!!!! TERMINO EL replication_files !!!!")
 
 # Se cayo el nodo siguiente a mi o detras de mi
@@ -632,14 +635,12 @@ def replication_files2(next_address):
     print("-----------------next address ", next_address)
 
     if len(node.get_members()) == 1: #ES el unico nodo que queda
-        
         new_data_combined = list(node.data.values())[0]
         print(f"list(node.data.values())[0] = {new_data_combined}, len = {len(new_data_combined)}")
         replay_list = list(node.replay.values())[0]
         print(f"replay_list = {replay_list}, len = {len(replay_list)}")
         new_data_combined.extend(replay_list)
         print(f"new_data_combined = {new_data_combined}, len = {len(new_data_combined)}")
-
         node.update_server_files(new_data_combined, [])
     else:
         try:
@@ -657,6 +658,7 @@ def replication_files2(next_address):
         doc = "".join(current_data)
         
         url += f'/{doc}'
+        print(f"url with docs = {url}")
         print("-------------- url de replication files 2 ---------------- ", url)
         response = requests.get(url, verify=False) #AQUI HUBO ERROR, múltiples intentos de conexión y todos ellos fallaron. 
         print("/////////////////////////, ", response)
@@ -718,6 +720,7 @@ def api_update_succ_data():
     print(f"utl = {url}")
     doc = "".join(current_data)
     url += f'/{doc}'
+    print(f"url with docs = {url}")
     response = requests.get(url, verify=False)
     if response.status_code == 200:
         print('Elementos replicados exitosamente')
@@ -732,7 +735,8 @@ def api_update_replay_data(doc:str):
 
 def update_replay_data(doc:str):
     print(f"--------------ENTRO EN update_replay_data")
-    indices = get_indexes(doc)
+    indices = get_indexes_from_str(doc)
+    print(f"indices = {indices}")
     new_replay = []
     for i in indices:
         temp = f"document_{i}.txt"
@@ -742,10 +746,23 @@ def update_replay_data(doc:str):
     print()
     print(f"node.replay antes de hacer sorted = {node.replay}")
     data_list = list(node.data.values())[0]
+    old_replay = list(node.replay.values())[0]
     node.update_server_files(data_list, new_replay)
     # AGREGAR A LA BD los archivos de la nueva replica!
     add_to_database(database,"", new_replay, True)
-    print(f"NUEVOS DATOS REPLICADOS = {new_replay}, len = {len(new_replay)}")
+    
+    all_data = get_all_data()
+
+    # Borrar los archivos viejos
+    print("VAMOS A BORRAR LOS DOCUMENTOS DEL OLD REPLAY")
+    old_indexes = get_indexes_from_list(old_replay)
+    print(f"old_indexes = {old_indexes}")
+    for i in old_indexes:
+        database.remove_file(i)
+    new_all_data = get_all_data()
+    print(f"DOCUMENTOS BORRADOS")
+    print(f"DOCUMENTOS DE LA BASE DE DATOS = {new_all_data}, len = {len(new_all_data)}")
+    print(f"node.data = {node.data},  node.replay = {node.replay}")
 
 # def get_prev_adr(prev_id):
 #     print("-----------ENTRO A get_prev_adr")
@@ -787,11 +804,25 @@ def update_replay_data(doc:str):
 
 #     return {'deleted_docs': indices, 'remaining_docs': list(actual_docs)}
     
-def get_indexes(doc:str):
+def get_indexes_from_str(doc:str):
     pattern = r"document_(\d+)\.txt" 
     matches = re.finditer(pattern, doc)
     indices = [int(match.group(1)) for match in matches]
     return indices
+
+def get_indexes_from_list(doc):
+    print("ENTRO EN get_indexes_from_list")
+    print(f"doc = {doc}")
+    print(f"type(doc) = {type(doc)}")
+    indexes = []
+    for d in doc:
+        match = re.search(r'\d+', d)
+        if match:
+            index = int(match.group())
+            indexes.append(index)
+        else:
+            print(f'No se encontró el indice {d}')
+    return indexes
 
 # @app.get('/api/replication/{rango}') # ROXANA
 # def api_replication(rango:str):
@@ -833,13 +864,14 @@ def api_get_actual_data():
 def get_all_data():
     print(f"-------------ENTRO EN get_all_data")
     check_files = f"SELECT ID FROM File"
+    print(check_files)
     result = database.execute_read_query(check_files)
     docs_to_add = []
     for i in result:
         doc = f"document_{i[0]}.txt"
         docs_to_add.append(doc)
     
-    print(f"actuals docs = {docs_to_add}, len = {len(docs_to_add)}")
+    print(f"DOCUMENTOS ACTUALES = {docs_to_add}, len = {len(docs_to_add)}")
     return docs_to_add
 
 def get_separated_data():

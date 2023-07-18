@@ -86,7 +86,7 @@ class Channel():
 			if self.hash_type == "SHA1":
 				newpid = hash_key(str(address))
 			else: # SHA1
-				newpid = random.choice(list(set([str(i) for i in range(self.MAXPROC)]) - self.get_members()))
+				newpid = random.choice(list(set([str(i) for i in range(1, self.MAXPROC)]) - self.get_members()))
 			# if len(members) > 0:
 			# 	xchan = [[str(newpid), other] for other in members] + [[other, str(newpid)] for other in members]
 			# 	for xc in xchan:
