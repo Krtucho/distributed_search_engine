@@ -424,21 +424,23 @@ class ChordNode:
   def update_server_files(self, files:list, replay_files:list): #ROXANA, DE PRUEBA
     print()
     print(f"---------ENTRO AL update_server_files")
-    print(f"files = {files}")
-    print(f"replay_files = {replay_files}")
-    print(f"self.nodeID = {self.nodeID}")
-    print(f"self.data = {self.data}")
-    print(f"self.replay = {self.replay}")
+    print(f"---files = {files}")
+    print(f"---replay_files = {replay_files}")
+    print(f"---self.nodeID = {self.nodeID}")
+    print(f"---self.data = {self.data}")
+    print(f"---self.replay = {self.replay}")
   
     self.data[self.nodeID] = files
+    self.replay.clear()
     predecessor = self.get_predecessor()
+    print(f"predecessor = {predecessor}")
     if predecessor != None:
       self.replay[predecessor] = replay_files
     else:
       self.replay[self.nodeID] = replay_files #ROXANA, DE PRUEBA
     print("DESPUES DEL UPDATE")
-    print(f"self.data = {self.data}")
-    print(f"self.replay = {self.replay}")
+    print(f"---self.data = {self.data}")
+    print(f"---self.replay = {self.replay}")
 
   def get_files(self):
     # print(self.data[self.nodeID])
