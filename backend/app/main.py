@@ -68,7 +68,7 @@ if not local:
 stopped = False
 
 server = '127.0.0.1'
-port = 10002 # Correrlo local
+port = 10001 # Correrlo local
 # brenckman,m.   ting-yili
 if not local:
     server = str(os.environ.get('IP')) # Correrlo con Docker
@@ -1058,7 +1058,7 @@ def send_message(message: Message):
     # parse_server(message)
     nodeID = None
     if node.is_leader:
-        nodeID  = int(node.chan.join('node', message.server_ip, message.server_port, order=True)) # Find out who you are         #-
+        nodeID  = int(node.chan.join('node', message.server_ip, message.server_port, order=False)) # Find out who you are         #-
         node.addNode(nodeID)
         print_debug("Inside Join Endpoint: " + str(nodeID))
         print_info(node.nodeID)
