@@ -710,6 +710,7 @@ def update_all_data (doc:str):
     print("node data *************",  node.data)
     print()
     update_replay_data(doc)
+    
 
 # Actualiza en el sucesor de mi sucesor el data.replay
 @app.get('/api/update_succ_data')
@@ -777,6 +778,10 @@ def update_replay_data(doc:str):
     print(f"DOCUMENTOS DE LA BASE DE DATOS = {new_all_data}, len = {len(new_all_data)}")
     print(f"node.data = {node.data},  node.replay = {node.replay}")
 
+    print_info("After update_replay_data restarting pred_data_info")
+    if not len(node.replay.items()) <= 0:
+        items = [(id, address) for (id,address) in node.replay.items()]
+        node.restart_pred_data_info(int(items[0][0]))
 # def get_prev_adr(prev_id):
 #     print("-----------ENTRO A get_prev_adr")
 #     print(f"prev_id = {prev_id}")

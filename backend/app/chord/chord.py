@@ -153,7 +153,10 @@ class ChordNode:
   def init_leader(self):
     self.is_leader = True
     # Build channel properties
-    self.chan = Channel(nBits=m, address=self.node_address, hash_type=self.hash_type)
+    try:
+      __ = self.chan.osmembers
+    except:
+      self.chan = Channel(nBits=m, address=self.node_address, hash_type=self.hash_type)
     self.nBits   = self.chan.nBits                  # Num of bits for the ID space #-
     self.MAXPROC = self.chan.MAXPROC                # Maximum num of processes     #-
     
@@ -428,7 +431,11 @@ class ChordNode:
     print(f"self.replay = {self.replay}")
   
     self.data[self.nodeID] = files
-    self.replay[self.nodeID] = replay_files #ROXANA, DE PRUEBA
+    predecessor = self.get_predecessor()
+    if predecessor != None:
+      self.replay[predecessor] = replay_files
+    else:
+      self.replay[self.nodeID] = replay_files #ROXANA, DE PRUEBA
     print("DESPUES DEL UPDATE")
     print(f"self.data = {self.data}")
     print(f"self.replay = {self.replay}")
@@ -462,8 +469,10 @@ class ChordNode:
 
   def set_confirmation(self, next_id, next_address, files):
     data = {"node_id":self.nodeID, "ip":self.node_address.ip, "port":self.node_address.port, "files":files}
+    print_info("Setting Confirmation...")
     try:
       r = requests.post(f"http://{next_address.ip}:{next_address.port}/chord/succ/data/done", json=data)
+      print(r)
     except Exception as e:
       print(e)
   
