@@ -225,3 +225,29 @@ class VectorModel:
                     self.doc_terms[term][doc].w = self.doc_terms[term][doc].tf * self.term_idf[term]
 
         self.doc_terms = new_dict
+
+    def delete_doc_list(self, docs_to_remove: List[Text]):
+        self.docs -= len(docs_to_remove)
+        print("**************!!!!!!!!!** Entro en docs to remove ")
+
+        # print(self.term_idf)
+        
+        for doc in docs_to_remove:
+            for term in self.doc_terms:
+                if self.doc_terms[term].get(doc.id):
+                    del self.doc_terms[term][doc.id]
+
+        new_dict = self.doc_terms.copy()
+
+        for term in self.doc_terms:
+            if len(self.doc_terms[term]) == 0:
+                del new_dict[term]
+
+            else:
+                self.term_idf[term] = log(
+                        self.docs / len(self.doc_terms[term]), 10)
+
+                for doc in self.doc_terms[term]:                
+                    self.doc_terms[term][doc].w = self.doc_terms[term][doc].tf * self.term_idf[term]
+
+        self.doc_terms = new_dict
