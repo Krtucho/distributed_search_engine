@@ -68,7 +68,7 @@ if not local:
 stopped = False
 
 server = '127.0.0.1'
-port = 10000 # Correrlo local
+port = 10002 # Correrlo local
 # brenckman,m.   ting-yili
 if not local:
     server = str(os.environ.get('IP')) # Correrlo con Docker
