@@ -176,17 +176,20 @@ def send_notification(server:str, results_, notification_type = True): #ROXANA
         print("ENTRO EN SEND NOTIFICATION")
         print("Hilo en ejecución: {}".format(threading.current_thread().name))
         print(f"server = {node.node_address.ip}, PORT = {node.node_address.port}")
-        result = requests.get(server, verify=False)
-         
-        print("\R:")
-        print("result ",result)
-        print("result.content ",result.content)
-        print("result.text ",result.text)
-        print("result.text[0] ",result.text[0])
-        print("R/")
+        try:
+            result = requests.get(server, verify=False)
 
-        selected_list = result.json()
-        print("selected list ", selected_list)
+            print("\R:")
+            print("result ",result)
+            print("result.content ",result.content)
+            print("result.text ",result.text)
+            print("result.text[0] ",result.text[0])
+            print("R/")
+
+            selected_list = result.json()
+            print("selected list ", selected_list)
+        except:
+            print("--------------- DIO ERROR EN EL REQUEST DE send_notification")
 
         if notification_type: #REQUEST SEARCH
             # selected_name = selected_list[1] #ARREGLAR
@@ -429,6 +432,7 @@ def add_to_database(datab, name_db, files: List[str], vec_mod_cond:bool):
     #A cada servidor le toca un archivo.db que se asigna en dependencia de su puerto
     print("DATABASE_DIR ", DATABASE_DIR + "/"+ name_db)
     if name_db != "":
+        print("CREAR NUEVA BD")
         delete_db(DATABASE_DIR, name_db)
         datab.create_connection(DATABASE_DIR + "/"+ name_db) #MODIFICAR CAMBIAR ITERACION
     
@@ -520,7 +524,10 @@ def init_servers(datab, name_db):
                 succ_port = new_members[i + 1][1]['port']
                 print(f"ENTRO A SUCESOR = {succ_ip}:{succ_port}")
                 server_str = f'http://{succ_ip}:{succ_port}/api/remove_doc/{rango}'
-                requests.delete(server_str, verify=False)
+                try:
+                    requests.delete(server_str, verify=False)
+                except:
+                    print("DIO ERROR EN EL init_servers")
 
         new_id = int(new_members[i][0])
         try:
@@ -556,76 +563,85 @@ def init_servers(datab, name_db):
 
     print("SALIO DEL INIT")
 
-def replication_files1(next_address):
+def replication_files1(next_id, next_address):
     print(f"-------ENTRO EN replication_files 1")
     current_id = node.nodeID
     print(f" current_id = {current_id}")
     prev_adr = node.chan.get_member(node.get_predecessor())
-    print(f"!!!!!!!!!!!!!!!!!!!prev = {prev_adr}")
+    print(f"!!!!!!!!!!!!!!!!!!!prev = {next_id}, {prev_adr}")
+    if str(next_id) != str(current_id):
+        # 1- Actualizar el node.replay del succ del succ, ahora son los nuevos docs. 
+        # porque se cambio su node.data y se actualizo
+        print("----------------------------------PASO 1")
+        if current_id < next_id: #Si el nuevo nodo es de mayor ID => no tengo q actualizar el replay del succ del succ
+            # LLamar al succ y q este llame a su succ y actualice su node.replay
+            try:
+                print("1-")
+                url = f'http://{next_address["ip"]}:{next_address["port"]}/api/update_succ_data'
+            except:
+                print("2-")
+                url = f'http://{next_address.ip}:{next_address.port}/api/update_succ_data'
 
-    # 1- Actualizar el node.replay del succ del succ, ahora son los nuevos docs. 
-    # porque se cambio su node.data y se actualizo
-    print("----------------------------------PASO 1")
-    # LLamar al succ y q este llame a su succ y actualice su node.replay
-    try:
-        print("1-")
-        url = f'http://{next_address["ip"]}:{next_address["port"]}/api/update_succ_data'
-    except:
-        print("2-")
-        url = f'http://{next_address.ip}:{next_address.port}/api/update_succ_data'
+            print(f"url = {url}")
+            try:
+                response_data_node_succ = requests.get(url, verify=False)
+                print('Elementos replicados exitosamente')
+            except:
+                print('Error al replicar elementos')
 
-    print(f"url = {url}")
-    response_data_node_succ = requests.get(url, verify=False)
-    if response_data_node_succ.status_code == 200:
-        print('Elementos replicados exitosamente')
-    else:
-        print('Error al replicar elementos')
-    
-    # 2- Actualizar el node.replay del succ, en vez de ser la data del node prev 
-    # ahora sera la data del current node.
-    print("----------------------------------PASO 2")
-    try:
-        print("1-")
-        url = f'http://{next_address["ip"]}:{next_address["port"]}/api/update_replay_data'
-    except:
-        print("2-")
-        url = f'http://{next_address.ip}:{next_address.port}/api/update_replay_data'
+        # 2- Actualizar el node.replay del succ, en vez de ser la data del node prev 
+        # ahora sera la data del current node.
+        print("----------------------------------PASO 2")
+        try:
+            print("1-")
+            url = f'http://{next_address["ip"]}:{next_address["port"]}/api/update_replay_data'
+        except:
+            print("2-")
+            url = f'http://{next_address.ip}:{next_address.port}/api/update_replay_data'
 
-    separated_data = get_separated_data()
-    print(f"separated_data[0] = {separated_data[0]}")
-    current_data = list(separated_data[0].values())[0]
-    print(f"current_data[0] = {current_data}")
-    doc = "".join(current_data)
-    
-    print(f"url = {url}")
-    url += f'/{doc}'
-    print(f"url with docs = {url}")
-    response = requests.get(url, verify=False)
-    if response.status_code == 200:
-        print('Elementos replicados exitosamente')
-    else:
-        print('Error al replicar elementos')
+        separated_data = get_separated_data()
+        print(f"separated_data[0] = {separated_data[0]}")
+        current_data = list(separated_data[0].values())[0]
+        print(f"current_data[0] = {current_data}")
+        doc = "".join(current_data)
 
-    # 3- Actualizar el node.replay del current node, seran los docs de prev node
-    print("----------------------------------PASO 3")
-    try:
-        print("1-")
-        url = f'http://{prev_adr["ip"]}:{prev_adr["port"]}/api/get_actual_data'
-    except:
-        print("2-")
-        url = f'http://{prev_adr.ip}:{prev_adr.port}/api/get_actual_data'
+        print(f"url = {url}")
+        url += f'/{doc}'
+        print(f"url with docs = {url}")
 
-    print(f"url = {url}")
-    # obtener los doc del node preview
-    response_data_prev = requests.get(url, verify=False) 
-    if response_data_prev.status_code == 200:
-        print('Elementos replicados exitosamente')
-    else:
-        print('Error al replicar elementos')
-    
-    print("COMPROBANDO TODO")
-    all_data = get_all_data()
-    print("!!!! TERMINO EL replication_files !!!!")
+        try:
+            response = requests.get(url, verify=False)
+            print('Elementos replicados exitosamente')
+        except:
+            print('Error al replicar elementos')
+
+        # 3- Actualizar el node.replay del current node, seran los docs de prev node
+        print("----------------------------------PASO 3")
+
+        try:
+            print("1-")
+            url = f'http://{prev_adr["ip"]}:{prev_adr["port"]}/api/get_actual_data'
+        except:
+            print("2-")
+            url = f'http://{prev_adr.ip}:{prev_adr.port}/api/get_actual_data'
+        print(f"url = {url}")
+        # obtener los doc del node preview
+        try:
+            response_data_prev = requests.get(url, verify=False) 
+            data_prev = response_data_prev.json()
+            print(f"data_prev = {data_prev}, len = {len(data_prev)}")
+            data_prev_list = list(data_prev[0].values())[0]
+            print(f"data_prev_list = {data_prev_list}, len = {len(data_prev_list)}")
+            node.update_server_files(current_data, data_prev_list)
+            add_to_database(database,"",data_prev_list, True)
+            print('Elementos replicados exitosamente')
+        except:
+            print('Error al replicar elementos')
+
+        print("COMPROBANDO TODO")
+        all_data = get_all_data()
+        print(f"all_data = {all_data}, len = {len(all_data)}")
+        print("!!!! TERMINO EL replication_files !!!!")
 
 # Se cayo el nodo siguiente a mi o detras de mi
 # Si next_node = True => se cayo el nodo siguiente a mi
@@ -660,12 +676,11 @@ def replication_files2(next_address):
         url += f'/{doc}'
         print(f"url with docs = {url}")
         print("-------------- url de replication files 2 ---------------- ", url)
-        response = requests.get(url, verify=False) #AQUI HUBO ERROR, múltiples intentos de conexión y todos ellos fallaron. 
-        print("/////////////////////////, ", response)
-        
-        if response.status_code == 200:
+        try:
+            response = requests.get(url, verify=False) #AQUI HUBO ERROR, múltiples intentos de conexión y todos ellos fallaron. 
+            print("/////////////////////////, ", response)
             print('Elementos replicados exitosamente')
-        else:
+        except:
             print('Error al replicar elementos')
         
         print("SEGUNDA PARTE")
@@ -677,10 +692,10 @@ def replication_files2(next_address):
             url = f'http://{next_address.ip}:{next_address.port}/api/update_succ_data'
         
         print(f"url = {url}")
-        response_data_node_succ = requests.get(url, verify=False)
-        if response_data_node_succ.status_code == 200:
+        try:
+            response_data_node_succ = requests.get(url, verify=False)
             print('Elementos replicados exitosamente')
-        else:
+        except:
             print('Error al replicar elementos')
   
 
@@ -721,10 +736,11 @@ def api_update_succ_data():
     doc = "".join(current_data)
     url += f'/{doc}'
     print(f"url with docs = {url}")
-    response = requests.get(url, verify=False)
-    if response.status_code == 200:
+    
+    try:
+        response = requests.get(url, verify=False)
         print('Elementos replicados exitosamente')
-    else:
+    except:
         print('Error al replicar elementos')
     print("SALIO DEL api_update_succ_data")
 
@@ -750,17 +766,14 @@ def update_replay_data(doc:str):
     node.update_server_files(data_list, new_replay)
     # AGREGAR A LA BD los archivos de la nueva replica!
     add_to_database(database,"", new_replay, True)
-    
-    all_data = get_all_data()
 
     # Borrar los archivos viejos
-    print("VAMOS A BORRAR LOS DOCUMENTOS DEL OLD REPLAY")
-    old_indexes = get_indexes_from_list(old_replay)
-    print(f"old_indexes = {old_indexes}")
-    for i in old_indexes:
-        database.remove_file(i)
+    #print("VAMOS A BORRAR LOS DOCUMENTOS DEL OLD REPLAY")
+    #old_indexes = get_indexes_from_list(old_replay)
+    #print(f"old_indexes = {old_indexes}")
+    #for i in old_indexes:
+    #    database.remove_file(i)
     new_all_data = get_all_data()
-    print(f"DOCUMENTOS BORRADOS")
     print(f"DOCUMENTOS DE LA BASE DE DATOS = {new_all_data}, len = {len(new_all_data)}")
     print(f"node.data = {node.data},  node.replay = {node.replay}")
 
@@ -859,7 +872,7 @@ def get_indexes_from_list(doc):
 @app.get('/api/get_actual_data') # ROXANA
 def api_get_actual_data():
     print("----------ENTRO EN api_get_actual_data")
-    get_separated_data()
+    return get_separated_data()
 
 def get_all_data():
     print(f"-------------ENTRO EN get_all_data")
@@ -1188,7 +1201,7 @@ def chord_replication_routine():
                     #   Si no se ha replicado, replicalo!
                     node.make_replication(next_id, next_address)
                     print("------------VA A ENTRAR EN REPLICATION FILES 1")
-                    replication_files1(next_address)
+                    replication_files1(next_id, next_address)
             # Si el siguiente se cayo, vuelvela a copiar, busca primero el nodo
             else:
                 node.update_succesors()

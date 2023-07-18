@@ -422,6 +422,7 @@ class ChordNode:
     print()
     print(f"---------ENTRO AL update_server_files")
     print(f"files = {files}")
+    print(f"replay_files = {replay_files}")
     print(f"self.nodeID = {self.nodeID}")
     print(f"self.data = {self.data}")
     print(f"self.replay = {self.replay}")

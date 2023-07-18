@@ -34,6 +34,7 @@ class DataB:
         self.execute_query(delete_file, "")
 
     def get_documents(self):
+        print("ENTRO A GET DOCUMENTS")
         docs = []
         query = "SELECT * FROM File;"
         result = self.execute_read_query(query)
@@ -49,6 +50,7 @@ class DataB:
 
     def close_connection(self):
         self.cursor.close()
+        self.connection.commit()
         self.connection.close()
       
     def open_connection(self):
@@ -90,7 +92,7 @@ class DataB:
                 self.cursor.execute(query, (text_file.id, text_file.title, text_file.author, text_file.body))
             else: 
                 self.cursor.execute(query)
-            self.connection.commit()
+                #AQUI IBA CONNEXION.COMMIT
             print("Query executed successfully")
         except Error as e:
             print(f"The error '{e}' ocurred")
