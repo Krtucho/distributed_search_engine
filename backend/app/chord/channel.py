@@ -79,14 +79,22 @@ class Channel():
 	def remove_member(self, node_id):
 		self.osmembers.pop(str(node_id))
 
-	def join(self, subgroup, address, port):
+	def join(self, subgroup, address, port, order=False):
 		with lock:
 			newpid = 0
 			# members = self.channel.smembers('members')
-			if self.hash_type == "SHA1":
+			if self.hash_type == "SHA1": # SHA1
 				newpid = hash_key(str(address))
-			else: # SHA1
-				newpid = random.choice(list(set([str(i) for i in range(1, self.MAXPROC)]) - self.get_members()))
+			else:
+				if order:
+					if not len(self.get_members()):
+						newpid = random.choice(list(set([str(i) for i in range(15, self.MAXPROC)])))
+					else:
+						minimum = min([int(i) for i in self.osmembers.keys()])
+
+						newpid = random.choice(list(set([str(i) for i in range(1, minimum)]) - self.get_members()))
+				else:
+					newpid = random.choice(list(set([str(i) for i in range(1, self.MAXPROC)]) - self.get_members()))
 			# if len(members) > 0:
 			# 	xchan = [[str(newpid), other] for other in members] + [[other, str(newpid)] for other in members]
 			# 	for xc in xchan:

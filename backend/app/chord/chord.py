@@ -35,7 +35,7 @@ class ChordNode:
       self.chan = Channel(nBits=m, address=node_address, hash_type=self.hash_type)
       self.nBits   = self.chan.nBits                  # Num of bits for the ID space #-
       self.MAXPROC = self.chan.MAXPROC                # Maximum num of processes     #-
-      self.nodeID  = int(self.chan.join('node', node_address.ip, node_address.port)) # Find out who you are         #-
+      self.nodeID  = int(self.chan.join('node', node_address.ip, node_address.port, order=True)) # Find out who you are         #-
       self.FT      = [None for i in range(self.nBits+1)] # FT[0] is predecessor #-
       self.nodeSet = []                           # Nodes discovered so far     #-
       self.nodeSetDict = {}
@@ -159,9 +159,9 @@ class ChordNode:
     
     try:
       if not self.nodeID:
-        self.nodeID  = int(self.chan.join('node', self.node_address.ip, self.node_address.port)) # Find out who you are         #-
+        self.nodeID  = int(self.chan.join('node', self.node_address.ip, self.node_address.port, order=True)) # Find out who you are         #-
     except:
-      self.nodeID  = int(self.chan.join('node', self.node_address.ip, self.node_address.port)) # Find out who you are         #-
+      self.nodeID  = int(self.chan.join('node', self.node_address.ip, self.node_address.port, order=True)) # Find out who you are         #-
       
     try:
       if not self.FT:
@@ -546,6 +546,7 @@ class ChordNode:
     if node_Address == self.node_address:
       return True
     print_debug(f"Inside Check Pred Data ID:  {nodeId}, {node_Address}, {self.pred_data_copied}, {self.pred_data.get(nodeId)}")
+    print_debug(f"... self.data: {self.data} \n self.replay: {self.replay}")
     return self.pred_data_copied and self.pred_data.get(nodeId)
   
   def confirm_pred_data_info(self, node_id, node_address, files=None):

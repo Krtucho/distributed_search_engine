@@ -1058,7 +1058,7 @@ def send_message(message: Message):
     # parse_server(message)
     nodeID = None
     if node.is_leader:
-        nodeID  = int(node.chan.join('node', message.server_ip, message.server_port)) # Find out who you are         #-
+        nodeID  = int(node.chan.join('node', message.server_ip, message.server_port, order=True)) # Find out who you are         #-
         node.addNode(nodeID)
         print_debug("Inside Join Endpoint: " + str(nodeID))
         print_info(node.nodeID)
@@ -1089,6 +1089,7 @@ def post_data(files: FilesModel):
 # Verificar si ya se replico la informacion en el siguiente nodo
 @app.post('/chord/succ/data')
 def verify_data(address: AddressModel):
+    get_all_data()
     return node.check_pred_data(address.node_id, Address(address.ip, address.port))#return {"osmembers":channel.osmembers, "nBits":channel.nBits, "MAXPROC":channel.MAXPROC }#search_by_text(text)#{"data": id}
 
 @app.delete('/api/remove_doc/{rango}') # ROXANA
