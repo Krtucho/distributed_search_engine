@@ -1,21 +1,11 @@
 import re
 
-docs = ["document_1.txt", "document_2.txt", "document_3.txt"]
-doc = "".join(docs)  # Concatenar los documentos en una cadena
+string = "document_1.txtdocument_7.txtdocument_4.txtdocument_18.txt"
 
-pattern = r"document_(\d+)\.txt"  # Patrón de búsqueda para encontrar los índices
-matches = re.finditer(pattern, doc)
+matches = re.findall(r"document_(\d+)\.txt", string)
+indexes = [f"document_{int(match)}.txt" for match in matches]
 
-indices = [int(match.group(1)) for match in matches]
-
-print("Índices encontrados:", indices)
-
-mi_diccionario = {"a": 1, "b": 2, "c": 3}
-print(list(mi_diccionario.values())[0])
-print()
-for clave, valor in mi_diccionario.items():
-    print(clave + ": " + str(valor))
-
+print(indexes)
 
 # def replication_files(next_address):
 #     print(f"-------ENTRO EN replication_files")
