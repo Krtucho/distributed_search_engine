@@ -68,7 +68,7 @@ if not local:
 stopped = False
 
 server = '127.0.0.1'
-port = 10000 # Correrlo local
+port = 10002 # Correrlo local
 # brenckman,m.   ting-yili
 if not local:
     server = str(os.environ.get('IP')) # Correrlo con Docker
@@ -618,7 +618,6 @@ def replication_files1(next_id, next_address):
 
         # 3- Actualizar el node.replay del current node, seran los docs de prev node
         print("----------------------------------PASO 3")
-
         try:
             print("1-")
             url = f'http://{prev_adr["ip"]}:{prev_adr["port"]}/api/get_actual_data'
@@ -645,7 +644,9 @@ def replication_files1(next_id, next_address):
         print_success("!!!! TERMINO EL replication_files 1!!!!")
 
 # Se cayo el nodo siguiente a mi
-def replication_files2(next_id, next_address):
+# next_fallen = True: se cayo el de alante de mi
+# next_fallen = False: se cayo el de atras de mi
+def replication_files2(next_id, next_address, next_fallen):
     print(f"-------ENTRO EN replication_files 2")
     print_success(f"-----------------next address: {next_id}, {next_address}")
     current_id = node.nodeID
@@ -663,52 +664,110 @@ def replication_files2(next_id, next_address):
         node.update_server_files(new_data_combined, [])
     elif len(node.get_members()) == 2:
         print("HAY 2 NODOS EN LA RED")
+        #Copiar lo del uno en el otro
     # poner elif
     if str(next_id) != str(current_id) or next_address != None:
-        print(f"node.get_members() = {node.get_members()}")
-        print("PRIMETA PARTE")
-        # Llamo a mi sucesor y este tiene que agregar en su node.data los archivos de su node.replay
-        # Luego, llama a su sucesor pasandole su nuevo node.data para q lo actualice en su otro node.replay
-        try:
-            print("1-")
-            url = f'http://{next_address["ip"]}:{next_address["port"]}/api/update_succ_data'
-        except:
-            print("2-")
-            url = f'http://{next_address.ip}:{next_address.port}/api/update_succ_data'
-        
-        print(f"url = {url}")
-        try:
-            response_data_node_succ = requests.get(url, verify=False)
-            print('Elementos replicados exitosamente en 1ra parte')
-        except:
-            print('Error al replicar elementos en 1ra parte')
-        
-        print("SEGUNDA PARTE")
-        # LLAmo a mi sucesor y le paso mis docs de node.data para q los actualice en su node.replay
-        try:
-            print("1-")
-            url = f'http://{next_address["ip"]}:{next_address["port"]}/api/update_all_data'
-        except:
-            print("2-")
-            url = f'http://{next_address.ip}:{next_address.port}/api/update_all_data'
-        
-        print(f"(((((((((((((( url = {url}")
-        separated_data = get_separated_data()
-        print(f"separated_data[0] = {separated_data[0]}")
-        print(f"separated_data[1] = {separated_data[1]}")
-        current_data = list(separated_data[0].values())[0]
-        print(f"current_data[0] = {current_data}")
-        doc = "".join(current_data)
-        
-        url += f'/{doc}'
-        print(f"url with docs = {url}")
-        print("-------------- url de replication files 2 ---------------- ", url)
-        try:
-            response = requests.get(url, verify=False) #AQUI HUBO ERROR, múltiples intentos de conexión y todos ellos fallaron. 
-            print("/////////////////////////, ", response)
-            print('Elementos replicados exitosamente en 2da parte')
-        except:
-            print('Error al replicar elementos en 2da parte')
+        if next_fallen:
+            print(f"node.get_members() = {node.get_members()}")
+            print("PRIMETA PARTE next_fallen = True")
+            # Llamo a mi sucesor y este tiene que agregar en su node.data los archivos de su node.replay
+            # Luego, llama a su sucesor pasandole su nuevo node.data para q lo actualice en su otro node.replay
+            try:
+                print("1-")
+                url = f'http://{next_address["ip"]}:{next_address["port"]}/api/update_succ_data'
+            except:
+                print("2-")
+                url = f'http://{next_address.ip}:{next_address.port}/api/update_succ_data'
+
+            print(f"url = {url}")
+            try:
+                response_data_node_succ = requests.get(url, verify=False)
+                print('Elementos replicados exitosamente en 1ra parte')
+            except:
+                print('Error al replicar elementos en 1ra parte')
+
+            print("SEGUNDA PARTE next_fallen = True")
+            # LLAmo a mi sucesor y le paso mis docs de node.data para q los actualice en su node.replay
+            try:
+                print("1-")
+                url = f'http://{next_address["ip"]}:{next_address["port"]}/api/update_all_data'
+            except:
+                print("2-")
+                url = f'http://{next_address.ip}:{next_address.port}/api/update_all_data'
+
+            print(f"(((((((((((((( url = {url}")
+            separated_data = get_separated_data()
+            print(f"separated_data[0] = {separated_data[0]}")
+            print(f"separated_data[1] = {separated_data[1]}")
+            current_data = list(separated_data[0].values())[0]
+            print(f"current_data[0] = {current_data}")
+            doc = "".join(current_data)
+
+            url += f'/{doc}'
+            print(f"url with docs = {url}")
+            print("-------------- url de replication files 2 ---------------- ", url)
+            try:
+                response = requests.get(url, verify=False) #AQUI HUBO ERROR, múltiples intentos de conexión y todos ellos fallaron. 
+                print("/////////////////////////, ", response)
+                print('Elementos replicados exitosamente en 2da parte')
+            except:
+                print('Error al replicar elementos en 2da parte')
+        else:
+            print(f"node.get_members() = {node.get_members()}")
+            print("PRIMETA PARTE next_fallen = False")
+            # Tengo q tomar mis node.data y node.replay y unirlo y llamar a mi sucesor para q lo actualice en 
+            # su node.replay
+            try:
+                print("1-")
+                url = f'http://{next_address["ip"]}:{next_address["port"]}/api/update_all_data'
+            except:
+                print("2-")
+                url = f'http://{next_address.ip}:{next_address.port}/api/update_all_data'
+
+            separated_data = get_separated_data()
+            print(f"separated_data[0] = {separated_data[0]}")
+            print(f"separated_data[1] = {separated_data[1]}")
+            current_data = list(separated_data[0].values())[0]
+            current_replay = list(separated_data[1].values())[0]
+            new_current_data = current_data + current_replay
+            print(f"new_current_data = {new_current_data}")
+            node.update_server_files(new_current_data, current_replay)
+
+            doc = "".join(new_current_data)
+            url += f'/{doc}'
+            print(f"url with docs = {url}")
+            try:
+                response = requests.get(url, verify=False) #AQUI HUBO ERROR, múltiples intentos de conexión y todos ellos fallaron. 
+                print("////////////////////, ", response)
+                print('Elementos replicados exitosamente en 2da parte del next_fallen = False')
+            except:
+                print('Error al replicar elementos en 2da parte next_fallen = False')
+
+            print("SEGUNDA PARTE next_fallen = FAlse")
+            # 3- Actualizar el node.replay del current node, seran los docs de prev node
+            print("----------------------------------PASO 3")
+            prev_adr = node.chan.get_member(node.get_predecessor())
+            print_success(f"!!!!!!!!!!!!!!!!!!!prev en next_fallen = FAlse => {prev_adr}")
+            try:
+                print("1-")
+                url = f'http://{prev_adr["ip"]}:{prev_adr["port"]}/api/get_actual_data'
+            except:
+                print("2-")
+                url = f'http://{prev_adr.ip}:{prev_adr.port}/api/get_actual_data'
+            print(f"url = {url}")
+            # obtener los doc del node preview
+            try:
+                response_data_prev = requests.get(url, verify=False) 
+                data_prev = response_data_prev.json()
+                print(f"data_prev = {data_prev}, len = {len(data_prev)}")
+                data_prev_list = list(data_prev[0].values())[0]
+                print(f"data_prev_list = {data_prev_list}, len = {len(data_prev_list)}")
+                node.update_server_files(current_data, data_prev_list)
+                add_to_database(database,"",data_prev_list, True)
+                print('Elementos replicados exitosamente en next_fallen = FAlse')
+            except:
+                print('Error al replicar elementos en next_fallen = FAlse')
+
         
     print("COMPROBANDO TODO 2 ....")
     all_data = get_all_data()
@@ -724,7 +783,7 @@ def update_all_data (doc:str):
     print()
     print("node replay *************",  node.replay)
     print()
-    node.data.update(node.replay)
+    #node.data.update(node.replay)
     print("node data *************",  node.data)
     print()
     update_replay_data(doc)
@@ -1248,8 +1307,10 @@ def chord_replication_routine():
                 except Exception as e:
                     print("Error trying to verify data replication")
                     print(e)
+            print(f"--------R: {r}")
             # Si no se ha replicado la informacion. Copiala
             if r:
+                print("----ENTRO EN EL 1er IF")
                 # print("Inside Verifying Data Replication")
                 text = bool(r.json())
                 # print(text)
@@ -1263,15 +1324,16 @@ def chord_replication_routine():
                     replication_files1(next_id, next_address)
             # Si el siguiente se cayo, vuelvela a copiar, busca primero el nodo
             else:
+                print("-----ENTRO EN EL 2DO IF")
                 node.update_succesors()
                 node.succ = node.get_succesor()
                 if node.succ:
                     node.make_replication(next_id, next_address)
                     print("------------VA A ENTRAR EN REPLICATION FILES 2")
-                    replication_files2(next_id, next_address)
+                    replication_files2(next_id, next_address,True)
             # Busca si el de atras ya existe:
             if node.predecessor:
-
+                print("-----ENTRO EN EL 3ER IF")
                 r = None
                 # Busca si se cae el de atras
                 try:
@@ -1287,7 +1349,7 @@ def chord_replication_routine():
                     node.make_replication(next_id, next_address, content)
                     print("------------VA A ENTRAR EN REPLICATION FILES 3")
                     # NO HACE FALTA ANALIZAR EL CASO DE QUE SE CAYO MI ANTECESOR PQ YA SE INCLUYE CUANDO SE ANALIZA EL CASO CAUNDO SE CAE MI SUCESOR
-                    #replication_files2(next_address, False)
+                    replication_files2(next_id, next_address, False)
                     # TODO: FixBug TypeError: 'NoneType' object does not support item assignment
                     print_debug("Predecessors" + str(node.predecessor))
                     node.restart_pred_data_info(node.predecessor[0])
