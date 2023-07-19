@@ -11,6 +11,7 @@ print(servers_list)
 
 # sudo docker run -it --rm --name backend -e FIRST_SERVER=172.21.0.2 -e IP=172.21.0.2 -e PORT=8000 -e LOCAL=False -p 8000:8000 -v /home/krtucho/nltk_data:/usr/share/nltk_data fastapi-files
 
+# sudo docker run -it --rm --name backend -e FIRST_SERVER=192.168.0.3 -e IP=192.168.0.244 -e PORT=8000 -e LOCAL=False -p 8000:8000 -v /home/krtucho/nltk_data:/usr/share/nltk_data fastapi-files
 INFO:     127.0.0.1:36860 - "GET /api/update_replay_data/document_1.txtdocument_2.txtdocument_3.txtdocument_4.txtdocument_5.txtdocument_6.txtdocument_7.txtdocument_8.txtdocument_9.txtdocument_10.txtdocument_11.txtdocument_12.txtdocument_13.txtdocument_14.txtdocument_15.txtdocument_16.txtdocument_17.txtdocument_18.txtdocument_19.txtdocument_20.txtdocument_21.txtdocument_22.txtdocument_23.txtdocument_24.txt HTTP/1.1" 500 Internal Server Error
 ERROR:    Exception in ASGI application
 Traceback (most recent call last):

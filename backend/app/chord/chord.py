@@ -142,7 +142,9 @@ class ChordNode:
       return None
     print_info("Node set: " + str(self.nodeSet))
     self.nodeSet.reverse()
-    for node in self.nodeSet:
+    copy = self.nodeSet.copy()
+    self.nodeSet.reverse()
+    for node in copy:
       if node < self.nodeID:
         return node
     # if self.nodeID == self.nodeSet[len(self.nodeSet)-1]:
