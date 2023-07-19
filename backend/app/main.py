@@ -68,7 +68,7 @@ if not local:
 stopped = False
 
 server = '127.0.0.1'
-port = 10002 # Correrlo local
+port = 10000 # Correrlo local
 # brenckman,m.   ting-yili
 if not local:
     server = str(os.environ.get('IP')) # Correrlo con Docker
@@ -650,8 +650,10 @@ def replication_files2(next_id, next_address):
     print_success(f"-----------------next address: {next_id}, {next_address}")
     current_id = node.nodeID
     print_success(f" current_id = {current_id}")
+    print_success(f"------------len(node.get_members()) = {len(node.get_members())}")
 
     if len(node.get_members()) == 1: #ES el unico nodo que queda
+        print("SOLO QUEDA 1 NODO EN LA RED")
         new_data_combined = list(node.data.values())[0]
         print(f"list(node.data.values())[0] = {new_data_combined}, len = {len(new_data_combined)}")
         replay_list = list(node.replay.values())[0]
@@ -659,7 +661,10 @@ def replication_files2(next_id, next_address):
         new_data_combined.extend(replay_list)
         print(f"new_data_combined = {new_data_combined}, len = {len(new_data_combined)}")
         node.update_server_files(new_data_combined, [])
-    elif str(next_id) != str(current_id) or next_address != None:
+    elif len(node.get_members()) == 2:
+        print("HAY 2 NODOS EN LA RED")
+    # poner elif
+    if str(next_id) != str(current_id) or next_address != None:
         print(f"node.get_members() = {node.get_members()}")
         print("PRIMETA PARTE")
         # Llamo a mi sucesor y este tiene que agregar en su node.data los archivos de su node.replay
@@ -674,9 +679,9 @@ def replication_files2(next_id, next_address):
         print(f"url = {url}")
         try:
             response_data_node_succ = requests.get(url, verify=False)
-            print('Elementos replicados exitosamente')
+            print('Elementos replicados exitosamente en 1ra parte')
         except:
-            print('Error al replicar elementos')
+            print('Error al replicar elementos en 1ra parte')
         
         print("SEGUNDA PARTE")
         # LLAmo a mi sucesor y le paso mis docs de node.data para q los actualice en su node.replay
@@ -690,6 +695,7 @@ def replication_files2(next_id, next_address):
         print(f"(((((((((((((( url = {url}")
         separated_data = get_separated_data()
         print(f"separated_data[0] = {separated_data[0]}")
+        print(f"separated_data[1] = {separated_data[1]}")
         current_data = list(separated_data[0].values())[0]
         print(f"current_data[0] = {current_data}")
         doc = "".join(current_data)
@@ -700,9 +706,9 @@ def replication_files2(next_id, next_address):
         try:
             response = requests.get(url, verify=False) #AQUI HUBO ERROR, múltiples intentos de conexión y todos ellos fallaron. 
             print("/////////////////////////, ", response)
-            print('Elementos replicados exitosamente')
+            print('Elementos replicados exitosamente en 2da parte')
         except:
-            print('Error al replicar elementos')
+            print('Error al replicar elementos en 2da parte')
         
     print("COMPROBANDO TODO 2 ....")
     all_data = get_all_data()
@@ -915,7 +921,6 @@ def get_all_data():
         doc = f"document_{i[0]}.txt"
         docs_to_add.append(doc)
     
-    print(f"DOCUMENTOS ACTUALES = {docs_to_add}, len = {len(docs_to_add)}")
     return docs_to_add
 
 def get_separated_data():

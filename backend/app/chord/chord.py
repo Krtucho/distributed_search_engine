@@ -242,7 +242,7 @@ class ChordNode:
         ips_in_range = Address.get_ips_in_range(self.node_address.ip, 24)
       # print_log("Ips in range: " + str(ips_in_range))
       # temp_ports = [10000, 10001, 10002, 10003, 10004, 10005, 10006, 10007, 10008, 10009, 10010, 10011, 10012]
-      for address in ips_in_range[:10]:#Address.get_ips_in_range(self.node_address.ip, 24):
+      for address in ips_in_range: # [:10]:#Address.get_ips_in_range(self.node_address.ip, 24):
         # print_info(address.ip)
         # Haz requests por cada ip buscando quien esta vivo y preguntale si es el lider
         try:
