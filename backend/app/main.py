@@ -224,8 +224,8 @@ def search_to_download(number: str): #ROXANA
         print(f"MEMBER {member}")
         print(f"ESTOY EN EL LLAMADO DE LOS HILOS: IP = {member[1].ip}")
         print(f"server = {node.node_address.ip}")
-        # if member[1].ip == node.node_address.ip:continue 
-        if member[1].port == node.node_address.port:continue  # para correrlo local
+        if member[1].ip == node.node_address.ip:continue 
+        # if member[1].port == node.node_address.port:continue  # para correrlo local
         server = f'http://{member[1].ip}:{member[1].port}/api/download/{number}'
         t = threading.Thread(target=send_notification, args=(server, results_files_download, False), name="Hilo {}".format(i))
         threading_list.append(t)
@@ -260,9 +260,9 @@ def search_by_text(text: str): #ROXANA
         print(f"ESTOY EN EL LLAMADO DE LOS HILOS: IP = {member[1].ip}")
         print(f"server = {node.node_address.ip}, PORT = {node.node_address.port}")
         # Si se esta probando con docker o varias pcs la condicion del if es q no sea el mismo ip
-        #if member[1].ip == node.node_address.ip:continue 
+        if member[1].ip == node.node_address.ip:continue 
         # Si se esta probando local entonces la condicion del if es q no sea el mismo port
-        if member[1].port == node.node_address.port:continue 
+        # if member[1].port == node.node_address.port:continue 
         server = f'http://{member[1].ip}:{member[1].port}/api/files/search/{text}'
         t = threading.Thread(target=send_notification, args=(server, results_), name="Hilo {}".format(i))
         threading_list.append(t)
